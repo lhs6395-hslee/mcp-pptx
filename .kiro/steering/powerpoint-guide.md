@@ -47,7 +47,7 @@ ppt-mcp/
 ├── powerpoint_content.py        # 27 layout renderers (24 unique + 3 aliases) + utility functions
 ├── powerpoint_cover.py          # Cover slide renderer
 ├── powerpoint_toc.py            # TOC slide renderer
-├── icons/                       # 27 PNG icons (512x512)
+├── icons/                       # 40 PNG icons (512x512)
 ├── architecture/                # Diagram PNG files
 ├── screenshots/                 # UI screenshot PNG files
 ├── template/
@@ -64,14 +64,15 @@ PPT 템플릿은 다음 슬라이드 구조를 가져야 함:
 - **Last slide**: Ending slide (감사합니다 - 보존됨)
 - **Slide dimensions**: 13.333" × 7.500"
 
-## Icons (27 Total)
+## Icons (40 Total)
 
 ```
-cloud, server, database, container, docker, kubernetes,
-aws, storage, compute, network, security, monitor,
-deploy, cicd, git, helm, terraform, ansible,
-load_balancer, api_gateway, lambda, s3, ec2, rds,
-eks, ecr, iam
+analysis, aurora, auto_mode, aws_account, billing, chat, cicd, cli,
+cluster_delete, config, console, container, cutover, dashboard, database,
+deploy, dms, eks, eksctl, encryption, gitops, helm, k8s_version, kubectl,
+kubernetes, load_balancer, microservices, migration, monitoring, network,
+performance, pipeline, schema, security, server, service, storage,
+terraform, timeline, verification
 ```
 
 - Format: PNG, 512×512 pixels, transparent background

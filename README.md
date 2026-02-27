@@ -213,9 +213,19 @@ presentation_data = {
 ### 4. 아이콘과 이미지
 
 **아이콘 사용 (`search_q` / `icon` 키):**
-- `icons/` 폴더의 27종 아이콘 사용: cloud, server, database, container, kubernetes, aws 등
+- `icons/` 폴더의 40종 아이콘 사용 (아래 전체 목록 참조)
 - 매칭 실패 시 파란 원형 fallback 자동 적용
-- 아이콘명은 소문자 + 언더스코어: `load_balancer`, `api_gateway`
+- 아이콘명은 소문자 + 언더스코어: `load_balancer`, `aws_account`
+
+**아이콘 전체 목록 (40종):**
+```
+analysis, aurora, auto_mode, aws_account, billing, chat, cicd, cli,
+cluster_delete, config, console, container, cutover, dashboard, database,
+deploy, dms, eks, eksctl, encryption, gitops, helm, k8s_version, kubectl,
+kubernetes, load_balancer, microservices, migration, monitoring, network,
+performance, pipeline, schema, security, server, service, storage,
+terraform, timeline, verification
+```
 
 **이미지 사용 (`image_path` 키):**
 - `architecture/`, `screenshots/` 폴더에 PNG 파일 배치
