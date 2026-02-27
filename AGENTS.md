@@ -197,7 +197,7 @@ claude mcp add fetch -- uvx mcp-server-fetch
 | H2 | `fileEdited` (powerpoint_*.py 등) | `askAgent` | `PostToolUse` (Edit\|Write) | `command` |
 | H3 | `userTriggered` | `askAgent` | `SessionStart` | `command` |
 | H4 | `userTriggered` | `askAgent` | _(사용자 요청)_ | _(해당 없음)_ |
-| H5 | `agentStop` | `askAgent` | `Stop` | `prompt` |
+| H5 | `agentStop` | `askAgent` | `Stop` | `command` |
 | H6 | `fileEdited` (.claude/settings.json) | `askAgent` | `PostToolUse` (Edit\|Write) | `command` |
 
 ### IDE별 설정 방법
@@ -213,7 +213,7 @@ claude mcp add fetch -- uvx mcp-server-fetch
       { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "H6: .kiro/hooks/ 또는 .claude/settings.json 변경 감지" }] }
     ],
     "SessionStart": [{ "hooks": [{ "type": "command", "command": "H3: MCP 서버 누락 확인" }] }],
-    "Stop": [{ "hooks": [{ "type": "prompt", "prompt": "H5: tasks.md 체크리스트 갱신" }] }]
+    "Stop": [{ "hooks": [{ "type": "command", "command": "H5: tasks.md 체크리스트 갱신 알림" }] }]
   }
 }
 ```
