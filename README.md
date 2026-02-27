@@ -58,7 +58,8 @@ mcp-pptx/
 │       ├── sync-steering-md.kiro.hook   #   Python 수정 → steering md 동기화 알림
 │       ├── validate-steering-file.kiro.hook  # 스티어링 파일 구문 검증
 │       ├── update-specs-on-change.kiro.hook  # tasks.md 자동 업데이트
-│       └── git-push-on-complete.kiro.hook    # 작업 완료 시 git push
+│       ├── git-push-on-complete.kiro.hook    # 작업 완료 시 git push
+│       └── cross-ide-sync.kiro.hook          # Cross-IDE hook 동기화 감지
 │
 ├── .claude/settings.json               # Claude Code Hooks
 ├── .gemini/settings.json               # Antigravity 설정
@@ -141,24 +142,130 @@ presentation_data = {
 | `pyramid_hierarchy` | 피라미드 계층 | levels[]{label,desc,color} |
 | `cycle_loop` | 순환 프로세스 | steps[]{label,desc}, center_label |
 
-## Agent Hooks
+## 프레젠테이션 생성 Best Practices
 
-### Kiro IDE (4개)
+### 1. 스티어링 파일 설계
 
-| Hook | 트리거 | 동작 |
-|------|--------|------|
-| Steering MD 동기화 | Python 파일 저장 | 대응 md 파일 동기화 요청 |
-| 스티어링 파일 검증 | `rayhli-*.py` 저장 | 구문/구조 자동 검증 |
-| Spec 태스크 업데이트 | 에이전트 완료 | tasks.md 체크리스트 업데이트 |
-| Git Push | 에이전트 완료 | 변경사항 commit + push |
+**섹션 구성부터 시작하세요.**
+```python
+# 먼저 목차(섹션)를 확정하고, 각 섹션에 슬라이드를 배분합니다.
+"sections": [
+    {"section_title": "1. 개요",      "slides": [...]},   # 2~3장
+    {"section_title": "2. 아키텍처",   "slides": [...]},   # 3~4장
+    {"section_title": "3. 구현 상세",  "slides": [...]},   # 4~5장
+    {"section_title": "4. 운영 가이드", "slides": [...]},  # 3~4장
+]
+```
 
-### Claude Code (3개)
+**슬라이드 수 가이드:**
+- 10분 발표: 10~15장 (3~4 섹션)
+- 30분 발표: 20~30장 (5~8 섹션)
+- 가이드 문서: 제한 없음 (논리적 섹션 단위로 구성)
 
-| Hook | 트리거 | 동작 |
-|------|--------|------|
-| Steering MD 동기화 | Python 파일 Edit/Write | 경고 메시지 |
-| 스티어링 파일 검증 | `rayhli-*.py` Edit/Write | python3 구문 검증 |
-| Git Push | 대화 종료 (Stop) | commit + push 요청 |
+### 2. 레이아웃 선택 전략
+
+**콘텐츠 유형에 따라 레이아웃을 선택하세요:**
+
+| 콘텐츠 유형 | 추천 레이아웃 | 피해야 할 레이아웃 |
+|-------------|-------------|-------------------|
+| 개요/소개 | `bento_grid`, `3_cards`, `icon_grid` | `comparison_table`, `split_text_code` |
+| 프로세스/절차 | `process_arrow`, `timeline_steps`, `phased_columns` | `grid_2x2`, `quote_highlight` |
+| 비교/분석 | `comparison_vs`, `pros_cons`, `before_after` | `numbered_list`, `cycle_loop` |
+| 기술 상세 | `split_text_code`, `detail_sections`, `table_callout` | `stats_dashboard`, `quote_highlight` |
+| 성과/KPI | `stats_dashboard`, `3_cards` (key_metric) | `split_text_code`, `pyramid_hierarchy` |
+| 아키텍처 | `architecture_wide`, `full_image`, `detail_image` | `numbered_list`, `do_dont` |
+
+**레이아웃 다양성 규칙:**
+- 동일 레이아웃은 **최대 3장**까지 허용
+- 예외: 같은 주제/로직/다른 데이터 (예: 1주차/2주차/3주차)는 같은 레이아웃 허용
+- 연속된 슬라이드에 같은 레이아웃 배치를 피하세요
+
+### 3. 데이터 작성 패턴
+
+**3중 중첩 구조를 지키세요:**
+```python
+{
+    "l": "3_cards",
+    "t": "슬라이드 제목",           # 헤더 좌측 (필수)
+    "d": "간단한 설명",             # 헤더 우측 (선택)
+    "data": {                      # Level 1
+        "body_title": "본문 제목",  # 본문 헤더 (선택)
+        "body_desc": "본문 설명",   # 본문 서브 (선택)
+        "data": {                  # Level 2 → Level 3: 실제 콘텐츠
+            "card_1": {"icon": "cloud", "title": "제목", "body": "설명"},
+            "card_2": {"icon": "server", "title": "제목", "body": "설명"},
+            "card_3": {"icon": "database", "title": "제목", "body": "설명"}
+        }
+    }
+}
+```
+
+**예외 레이아웃** (`challenge_solution`, `before_after`):
+```python
+# Level 2(wrapper)에서 직접 데이터를 읽음
+"data": {
+    "challenge": "문제점 설명",    # wrapper 레벨
+    "solution": "해결책 설명",     # wrapper 레벨
+    "data": {}                    # 빈 객체도 가능
+}
+```
+
+### 4. 아이콘과 이미지
+
+**아이콘 사용 (`search_q` / `icon` 키):**
+- `icons/` 폴더의 27종 아이콘 사용: cloud, server, database, container, kubernetes, aws 등
+- 매칭 실패 시 파란 원형 fallback 자동 적용
+- 아이콘명은 소문자 + 언더스코어: `load_balancer`, `api_gateway`
+
+**이미지 사용 (`image_path` 키):**
+- `architecture/`, `screenshots/` 폴더에 PNG 파일 배치
+- 경로는 프로젝트 루트 기준: `"image_path": "architecture/eks_arch.png"`
+- 종횡비 자동 유지, 영역 내 중앙 배치
+
+### 5. 텍스트 작성 가이드
+
+- **제목 (`t`)**: 핵심 키워드 중심, 15자 이내
+- **설명 (`d`)**: 부연 설명, 25자 이내
+- **본문 텍스트**: 줄바꿈은 `\n` 사용
+- **불릿 리스트**: 항목당 1~2줄, 3~5개 항목이 적정
+- **터미널 코드**: `code_title`과 `code` 키로 macOS 스타일 터미널 박스 표시
+
+### 6. 흔한 실수와 해결
+
+| 실수 | 원인 | 해결 |
+|------|------|------|
+| 빈 슬라이드 | `data.data.data` 중첩 누락 | 3단계 중첩 확인 |
+| 아이콘 미표시 | 아이콘명 오타 또는 대문자 | `icons/` 폴더 파일명 확인 |
+| 레이아웃 무시됨 | `l` 키 오타 | 27종 레이아웃명 정확히 확인 |
+| 텍스트 잘림 | 본문 영역(Y 2.0"~7.2") 초과 | 텍스트 축소 또는 레이아웃 분할 |
+| 이미지 안 나옴 | `image_path` 경로 오류 | 프로젝트 루트 기준 상대경로 확인 |
+
+### 7. AI 에이전트 활용 팁
+
+```
+1. PDF/문서 분석 → 섹션 구조 설계
+2. 각 섹션별 적합한 레이아웃 선택
+3. rayhli-{주제}.py 스티어링 파일 작성
+4. ./generate_ppt.sh rayhli-{주제}.py 실행
+5. 결과 확인 후 데이터 수정 → 재생성
+```
+
+- 스티어링 파일 저장 시 **H1 Hook이 자동 검증** (sections/slides 카운트)
+- 한번에 완벽하게 만들려 하지 말고, **반복 수정**으로 완성도를 높이세요
+- 레이아웃별 Data Keys는 위 테이블 또는 `AGENTS.md` 참조
+
+## Agent Hooks (6종)
+
+자세한 Hook 설정은 `AGENTS.md`의 **Hooks (자동화)** 섹션을 참조하세요.
+
+| ID | Hook | 트리거 | 동작 |
+|----|------|--------|------|
+| H1 | 스티어링 파일 검증 | `rayhli-*.py` 저장 시 | sections/slides 카운트 검증 |
+| H2 | Steering MD 동기화 | 핵심 Python 파일 수정 시 | 대응 steering md 동기화 안내 |
+| H3 | MCP 서버 검증 | 세션 시작 시 | 필수 MCP 서버 누락 확인 |
+| H4 | Git Commit & Push | 사용자 요청 시 | commit(한국어) → push |
+| H5 | Spec 태스크 업데이트 | 에이전트 작업 완료 시 | tasks.md 체크리스트 갱신 |
+| H6 | Cross-IDE 동기화 감지 | Hook 설정 파일 변경 시 | 다른 IDE hook 동기화 안내 |
 
 ## 디자인 시스템
 
