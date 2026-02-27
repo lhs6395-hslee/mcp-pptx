@@ -1,0 +1,20 @@
+{
+  "name": "Steering MD 동기화 알림",
+  "description": "핵심 Python 파일 수정 시 대응하는 steering md 파일 동기화를 요청합니다",
+  "enabled": true,
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "powerpoint_content.py",
+      "powerpoint_cover.py",
+      "powerpoint_toc.py",
+      "generate.py",
+      "generate_ppt.sh"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "방금 수정된 Python 파일의 변경사항을 확인하고, 대응하는 .kiro/steering/ md 파일도 동기화해주세요.\n\n매핑 규칙:\n- generate.py / generate_ppt.sh → powerpoint-code-generate.md\n- powerpoint_cover.py / powerpoint_toc.py → powerpoint-code-cover-toc.md\n- powerpoint_content.py (유틸리티+레이아웃 1~13) → powerpoint-code-content.md\n- powerpoint_content.py (레이아웃 14~27+라우터) → powerpoint-code-content-2.md\n- 상수/아키텍처 변경 → powerpoint-guide.md"
+  }
+}

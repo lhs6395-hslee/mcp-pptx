@@ -1,0 +1,34 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$CLAUDE_TOOL_ARG_FILE_PATH\"; case \"$file\" in */powerpoint_content.py|*/powerpoint_cover.py|*/powerpoint_toc.py|*/generate.py|*/generate_ppt.sh) echo '⚠️ [Hook] Python 핵심 파일이 수정되었습니다. .kiro/steering/ md 파일도 동기화하세요.' ;; esac"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$CLAUDE_TOOL_ARG_FILE_PATH\"; case \"$file\" in */rayhli-*.py) cd /Users/toule/Documents/kiro/ppt-mcp && python3 -c \"import sys; exec(open(sys.argv[1]).read()); d=presentation_data; s=d.get('sections',[]); slides=sum(len(x.get('slides',[])) for x in s); print(f'✅ 스티어링 검증: {len(s)} sections, {slides} slides')\" \"$file\" 2>&1 || echo '❌ 스티어링 파일 구문 오류!' ;; esac"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "작업이 완료되었습니다. git status를 확인하고 변경사항이 있으면 커밋 메시지를 한국어로 작성하여 commit 후 git push origin main을 실행해주세요. 변경사항이 없으면 push하지 마세요."
+          }
+        ]
+      }
+    ]
+  }
+}

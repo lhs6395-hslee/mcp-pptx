@@ -1,0 +1,13 @@
+{
+  "name": "Spec 태스크 업데이트",
+  "description": "에이전트 작업 완료 시 specs/tasks.md의 체크리스트 상태를 업데이트합니다",
+  "enabled": true,
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "방금 완료한 작업을 기반으로 .kiro/specs/powerpoint-system/tasks.md의 체크리스트를 확인하고, 새로 완료된 항목이 있으면 [ ]를 [x]로 업데이트해주세요. 새로운 기능이 추가되었다면 해당 태스크도 추가해주세요."
+  }
+}

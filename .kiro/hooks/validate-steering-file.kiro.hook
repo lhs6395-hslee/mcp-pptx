@@ -1,0 +1,16 @@
+{
+  "name": "스티어링 파일 검증",
+  "description": "스티어링 파일(데이터 Python) 저장 시 구문 및 구조를 자동 검증합니다",
+  "enabled": true,
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "rayhli-*.py"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd /Users/toule/Documents/kiro/ppt-mcp && python3 -c \"import sys; f=sys.argv[1]; exec(open(f).read()); d=presentation_data; sections=d.get('sections',[]); slides=sum(len(s.get('slides',[])) for s in sections); print(f'✅ {f}: {len(sections)} sections, {slides} slides')\" \"${file}\""
+  }
+}

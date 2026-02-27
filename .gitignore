@@ -1,0 +1,38 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated from steering md (재생성 가능)
+generate.py
+generate_ppt.sh
+powerpoint_content.py
+powerpoint_cover.py
+powerpoint_toc.py
+
+# Steering data files (개별 프레젠테이션 데이터)
+rayhli-*.py
+
+# Utility scripts (재생성 가능)
+create_professional_icons.py
+generate_icons.py
+generate_db_icons.py
+generate_migration.py
+test_new_layouts.py
+convert_architecture.sh
+
+# Generated output
+results/*.pptx
+generated-diagrams/
+
+# IDE local settings
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.bak

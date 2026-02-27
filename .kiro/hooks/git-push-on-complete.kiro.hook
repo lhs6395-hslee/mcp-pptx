@@ -1,0 +1,13 @@
+{
+  "name": "Git 커밋 & Push",
+  "description": "에이전트 작업 완료 시 변경사항을 커밋하고 원격 저장소에 push합니다",
+  "enabled": true,
+  "version": "1",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "방금 작업이 완료되었습니다. 다음을 수행해주세요:\n\n1. `git status`로 변경된 파일 확인\n2. 변경된 파일이 있으면 `git add`로 스테이징 (단, .gitignore에 포함된 파일은 제외)\n3. 변경 내용을 요약하여 한국어로 커밋 메시지 작성\n4. `git commit` 실행\n5. `git push origin main` 실행\n\n변경사항이 없으면 push하지 마세요."
+  }
+}
