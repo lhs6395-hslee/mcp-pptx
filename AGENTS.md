@@ -118,3 +118,50 @@ python-pptx   # PowerPoint 생성
 lxml          # XML 파싱 (섹션 제거)
 pillow        # 이미지 종횡비 (선택)
 ```
+
+## MCP 서버 (필수)
+
+이 프로젝트에서 사용하는 MCP 서버 목록입니다. IDE에 설정되어 있지 않으면 추가해주세요.
+
+| 서버 | 명령어 | 용도 |
+|------|--------|------|
+| `context7` | `npx -y @upstash/context7-mcp@latest` | 라이브러리 문서 검색 |
+| `infrastructure-diagrams` | `uvx infrastructure-diagram-mcp-server` | 인프라 다이어그램 생성 |
+| `powerpoint` | `uvx --from office-powerpoint-mcp-server ppt_mcp_server` | PPT 직접 조작 |
+| `fetch` | `uvx mcp-server-fetch` | 웹 페이지 fetch |
+
+### IDE별 설정 방법
+
+**Claude Code:**
+```bash
+claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
+claude mcp add infrastructure-diagrams -- uvx infrastructure-diagram-mcp-server
+claude mcp add powerpoint -- uvx --from office-powerpoint-mcp-server ppt_mcp_server
+claude mcp add fetch -- uvx mcp-server-fetch
+```
+
+**Kiro:** `.kiro/settings/mcp.json`
+```json
+{
+  "mcpServers": {
+    "context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp@latest"] },
+    "infrastructure-diagrams": { "command": "uvx", "args": ["infrastructure-diagram-mcp-server"] },
+    "powerpoint": { "command": "uvx", "args": ["--from", "office-powerpoint-mcp-server", "ppt_mcp_server"] },
+    "fetch": { "command": "uvx", "args": ["mcp-server-fetch"] }
+  }
+}
+```
+
+**VS Code Copilot:** `.vscode/mcp.json`
+```json
+{
+  "servers": {
+    "context7": { "type": "stdio", "command": "npx", "args": ["-y", "@upstash/context7-mcp@latest"] },
+    "infrastructure-diagrams": { "type": "stdio", "command": "uvx", "args": ["infrastructure-diagram-mcp-server"] },
+    "powerpoint": { "type": "stdio", "command": "uvx", "args": ["--from", "office-powerpoint-mcp-server", "ppt_mcp_server"] },
+    "fetch": { "type": "stdio", "command": "uvx", "args": ["mcp-server-fetch"] }
+  }
+}
+```
+
+**Antigravity:** `~/.gemini/antigravity/mcp_config.json`에 수동 추가

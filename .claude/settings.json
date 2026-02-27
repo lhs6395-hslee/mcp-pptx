@@ -20,6 +20,16 @@
         ]
       }
     ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "required='context7 infrastructure-diagrams powerpoint fetch'; missing=''; for s in $required; do claude mcp list 2>/dev/null | grep -q \"$s\" || missing=\"$missing $s\"; done; [ -n \"$missing\" ] && echo \"⚠️ [MCP] 누락된 서버:$missing — AGENTS.md의 MCP 설정 참조\" || true"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
