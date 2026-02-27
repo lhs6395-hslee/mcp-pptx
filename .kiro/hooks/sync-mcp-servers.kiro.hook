@@ -9,5 +9,7 @@
   "then": {
     "type": "askAgent",
     "prompt": "AGENTS.md의 'MCP 서버 (필수)' 섹션에 정의된 서버 목록을 확인하고, 현재 Kiro IDE에 설정되어 있지 않은 MCP 서버가 있으면 .kiro/settings/mcp.json에 추가해주세요.\n\n필수 서버: context7, infrastructure-diagrams, powerpoint, fetch\n\n.kiro/settings/mcp.json 파일이 없으면 새로 생성하세요."
-  }
+  },
+  "workspaceFolderName": "ppt-mcp",
+  "shortName": "sync-mcp-servers"
 }

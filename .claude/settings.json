@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "file=\"$CLAUDE_TOOL_ARG_FILE_PATH\"; case \"$file\" in */powerpoint_content.py|*/powerpoint_cover.py|*/powerpoint_toc.py|*/generate.py|*/generate_ppt.sh) echo '⚠️ [Hook] Python 핵심 파일이 수정되었습니다. .kiro/steering/ md 파일도 동기화하세요.' ;; esac"
+            "command": "file=\"$CLAUDE_TOOL_ARG_FILE_PATH\"; case \"$file\" in */powerpoint_content.py|*/powerpoint_cover.py|*/powerpoint_toc.py|*/generate.py|*/generate_ppt.sh) echo '⚠️ [Hook:H2] Python 핵심 파일이 수정되었습니다. .kiro/steering/ md 파일도 동기화하세요.' ;; esac"
           }
         ]
       },
@@ -15,7 +15,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "file=\"$CLAUDE_TOOL_ARG_FILE_PATH\"; case \"$file\" in */rayhli-*.py) cd /Users/toule/Documents/kiro/ppt-mcp && python3 -c \"import sys; exec(open(sys.argv[1]).read()); d=presentation_data; s=d.get('sections',[]); slides=sum(len(x.get('slides',[])) for x in s); print(f'✅ 스티어링 검증: {len(s)} sections, {slides} slides')\" \"$file\" 2>&1 || echo '❌ 스티어링 파일 구문 오류!' ;; esac"
+            "command": "file=\"$CLAUDE_TOOL_ARG_FILE_PATH\"; case \"$file\" in */rayhli-*.py) cd /Users/toule/Documents/kiro/ppt-mcp && python3 -c \"import sys; exec(open(sys.argv[1]).read()); d=presentation_data; s=d.get('sections',[]); slides=sum(len(x.get('slides',[])) for x in s); print(f'✅ [Hook:H1] 스티어링 검증: {len(s)} sections, {slides} slides')\" \"$file\" 2>&1 || echo '❌ [Hook:H1] 스티어링 파일 구문 오류!' ;; esac"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$CLAUDE_TOOL_ARG_FILE_PATH\"; case \"$file\" in */.kiro/hooks/*.kiro.hook) echo '🔄 [Hook:H6] Kiro hook 파일이 수정되었습니다. .claude/settings.json의 대응 hook도 동기화가 필요할 수 있습니다. AGENTS.md Hooks 섹션 참조.' ;; */.claude/settings.json) echo '🔄 [Hook:H6] Claude Code hook 설정이 변경되었습니다. .kiro/hooks/의 대응 hook도 동기화가 필요할 수 있습니다. AGENTS.md Hooks 섹션 참조.' ;; */AGENTS.md) echo '📌 [Hook:H6] AGENTS.md가 변경되었습니다. Hooks 섹션이 수정되었다면 양쪽 IDE hook 설정도 확인하세요.' ;; esac"
           }
         ]
       }
@@ -25,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "required='context7 infrastructure-diagrams powerpoint fetch'; missing=''; for s in $required; do claude mcp list 2>/dev/null | grep -q \"$s\" || missing=\"$missing $s\"; done; [ -n \"$missing\" ] && echo \"⚠️ [MCP] 누락된 서버:$missing — AGENTS.md의 MCP 설정 참조\" || true"
+            "command": "required='context7 infrastructure-diagrams powerpoint fetch'; missing=''; for s in $required; do claude mcp list 2>/dev/null | grep -q \"$s\" || missing=\"$missing $s\"; done; [ -n \"$missing\" ] && echo \"⚠️ [Hook:H3] 누락된 서버:$missing — AGENTS.md의 MCP 설정 참조\" || true"
           }
         ]
       }
@@ -35,7 +44,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "작업이 완료되었습니다. git status를 확인하고 변경사항이 있으면 커밋 메시지를 한국어로 작성하여 commit 후 git push origin main을 실행해주세요. 변경사항이 없으면 push하지 마세요."
+            "prompt": ".kiro/specs/powerpoint-system/tasks.md의 체크리스트를 확인하고, 이번 세션에서 완료한 작업이 있으면 [ ]를 [x]로 업데이트해주세요. 새로운 기능이 추가되었으면 해당 태스크도 추가해주세요."
           }
         ]
       }

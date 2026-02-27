@@ -112,3 +112,11 @@
 - [x] `.gemini/settings.json` 작성 (CLAUDE.md 병행 읽기 설정)
 - [x] `.github/copilot-instructions.md` 작성 (VS Code Copilot 가이드)
 - [x] `.kiro/specs/powerpoint-system/` Kiro spec 작성 (requirements/design/tasks)
+
+## Task 15: Cross-IDE Hook 동기화
+
+- [x] AGENTS.md에 Hooks (자동화) 섹션 추가 (H1~H6 정규표 + IDE별 매핑)
+- [x] `.claude/settings.json`에 H5(Stop/prompt), H6(Cross-IDE 감지) 추가
+- [x] 기존 Claude Code hook 메시지에 `[Hook:Hx]` 라벨 추가
+- [x] `.kiro/hooks/cross-ide-sync.kiro.hook` 생성 (양방향 감지)
+- [x] `.kiro/hooks/git-push-on-complete.kiro.hook` agentStop→userTriggered 확정

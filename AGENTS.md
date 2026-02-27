@@ -165,3 +165,73 @@ claude mcp add fetch -- uvx mcp-server-fetch
 ```
 
 **Antigravity:** `~/.gemini/antigravity/mcp_config.json`에 수동 추가
+
+## Hooks (자동화)
+
+이 프로젝트에서 사용하는 자동화 Hook 목록입니다. IDE에 설정되어 있지 않으면 추가해주세요.
+
+| ID | Hook | 트리거 | 동작 | 비고 |
+|----|------|--------|------|------|
+| H1 | 스티어링 파일 검증 | `rayhli-*.py` 저장 시 | Python exec → sections/slides 카운트 | 구문 오류 즉시 감지 |
+| H2 | Steering MD 동기화 알림 | 핵심 Python 파일 수정 시 | 대응 steering md 동기화 안내 | 매핑 규칙 아래 참조 |
+| H3 | MCP 서버 검증 | 세션 시작 시 | 필수 MCP 서버 누락 확인 | context7, infra-diagrams, ppt, fetch |
+| H4 | Git Commit & Push | 사용자 요청 시 | git add → commit(한국어) → push | 수동 트리거만 (자동 X) |
+| H5 | Spec 태스크 업데이트 | 에이전트 작업 완료 시 | tasks.md 체크리스트 갱신 | .kiro/specs/ 전용 |
+| H6 | Cross-IDE Hook 동기화 감지 | Hook 설정 파일 변경 시 | 다른 IDE hook 동기화 안내 | 양방향 감지 |
+
+### H2 파일→MD 매핑 규칙
+
+| Python 파일 | Steering MD |
+|-------------|-------------|
+| `generate.py` / `generate_ppt.sh` | `powerpoint-code-generate.md` |
+| `powerpoint_cover.py` / `powerpoint_toc.py` | `powerpoint-code-cover-toc.md` |
+| `powerpoint_content.py` (유틸리티+레이아웃 1~13) | `powerpoint-code-content.md` |
+| `powerpoint_content.py` (레이아웃 14~27+라우터) | `powerpoint-code-content-2.md` |
+| 상수/아키텍처 변경 | `powerpoint-guide.md` |
+
+### IDE별 Hook 매핑
+
+| ID | Kiro 트리거 | Kiro 타입 | Claude Code 이벤트 | Claude Code 타입 |
+|----|------------|----------|-------------------|-----------------|
+| H1 | `fileEdited` (rayhli-*.py) | `runCommand` | `PostToolUse` (Edit\|Write) | `command` |
+| H2 | `fileEdited` (powerpoint_*.py 등) | `askAgent` | `PostToolUse` (Edit\|Write) | `command` |
+| H3 | `userTriggered` | `askAgent` | `SessionStart` | `command` |
+| H4 | `userTriggered` | `askAgent` | _(사용자 요청)_ | _(해당 없음)_ |
+| H5 | `agentStop` | `askAgent` | `Stop` | `prompt` |
+| H6 | `fileEdited` (.claude/settings.json) | `askAgent` | `PostToolUse` (Edit\|Write) | `command` |
+
+### IDE별 설정 방법
+
+**Claude Code:** `.claude/settings.json`의 `hooks` 섹션
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "H2: 핵심 Python 파일 감지" }] },
+      { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "H1: rayhli-*.py 검증" }] },
+      { "matcher": "Edit|Write", "hooks": [{ "type": "command", "command": "H6: .kiro/hooks/ 또는 .claude/settings.json 변경 감지" }] }
+    ],
+    "SessionStart": [{ "hooks": [{ "type": "command", "command": "H3: MCP 서버 누락 확인" }] }],
+    "Stop": [{ "hooks": [{ "type": "prompt", "prompt": "H5: tasks.md 체크리스트 갱신" }] }]
+  }
+}
+```
+
+**Kiro:** `.kiro/hooks/*.kiro.hook` 파일
+
+| Hook ID | 파일명 |
+|---------|--------|
+| H1 | `validate-steering-file.kiro.hook` |
+| H2 | `sync-steering-md.kiro.hook` |
+| H3 | `sync-mcp-servers.kiro.hook` |
+| H4 | `git-push-on-complete.kiro.hook` |
+| H5 | `update-specs-on-change.kiro.hook` |
+| H6 | `cross-ide-sync.kiro.hook` |
+
+### Cross-IDE 동기화 원칙
+
+- **AGENTS.md**가 Hook의 Single Source of Truth
+- Hook 추가/수정 시: AGENTS.md 먼저 업데이트 → 현재 IDE에 구현 → H6이 다른 IDE 동기화 안내
+- Claude Code → `.kiro/hooks/` 편집 감지 시 `.claude/settings.json` 동기화 안내
+- Kiro → `.claude/settings.json` 편집 감지 시 `.kiro/hooks/` 동기화 안내

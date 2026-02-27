@@ -1,0 +1,16 @@
+{
+  "name": "Cross-IDE Hook 동기화 감지",
+  "description": "Claude Code hook 설정이 변경되면 Kiro hook도 동기화가 필요한지 안내합니다",
+  "enabled": true,
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".claude/settings.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": ".claude/settings.json의 hooks 설정이 변경되었습니다. AGENTS.md의 Hooks 섹션을 확인하고, 대응하는 .kiro/hooks/ 파일도 동기화가 필요한지 확인해주세요.\n\n매핑 참조:\n- H1 스티어링 검증: validate-steering-file.kiro.hook ↔ PostToolUse rayhli-*.py\n- H2 Steering MD 동기화: sync-steering-md.kiro.hook ↔ PostToolUse 핵심파일\n- H3 MCP 서버 검증: sync-mcp-servers.kiro.hook ↔ SessionStart\n- H4 Git Push: git-push-on-complete.kiro.hook ↔ (사용자 요청)\n- H5 Spec 업데이트: update-specs-on-change.kiro.hook ↔ Stop prompt\n- H6 Cross-IDE 동기화: cross-ide-sync.kiro.hook ↔ PostToolUse hook파일"
+  }
+}
