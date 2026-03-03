@@ -8,7 +8,7 @@
 .kiro/steering/ (MD 명세)  →  Python 코드 재생성  →  rayhli-*.py (데이터)  →  rayhli-*.pptx
 ```
 
-**Version**: v5.1 | **Template**: 13.33" × 7.50" | **레이아웃**: 27종
+**Version**: v5.1 | **Template**: 13.33" × 7.50" | **레이아웃**: 38종
 
 ## 핵심 규칙
 
@@ -23,7 +23,7 @@
 | `powerpoint-code-generate.md` | 오케스트레이션 코드 | generate.py, generate_ppt.sh |
 | `powerpoint-code-cover-toc.md` | 표지/목차 코드 | powerpoint_cover.py, powerpoint_toc.py |
 | `powerpoint-code-content.md` | 본문 Part 1 (유틸리티 + 레이아웃 1~13) | powerpoint_content.py |
-| `powerpoint-code-content-2.md` | 본문 Part 2 (레이아웃 14~27 + 라우터) | powerpoint_content.py |
+| `powerpoint-code-content-2.md` | 본문 Part 2 (레이아웃 14~38 + 라우터) | powerpoint_content.py |
 
 ### 스티어링 데이터 파일 작성 시
 - 파일명 규칙: `rayhli-{주제}.py`
@@ -79,7 +79,7 @@ pip install python-pptx lxml pillow
 ./generate_ppt.sh rayhli-my_presentation.py
 ```
 
-## 27종 레이아웃
+## 38종 레이아웃
 
 | Layout | 용도 | Data Keys |
 |--------|------|-----------|
@@ -110,6 +110,17 @@ pip install python-pptx lxml pillow
 | `split_text_code` | 설명+코드 | description, bullets[], code |
 | `pyramid_hierarchy` | 피라미드 계층 | levels[]{label,desc,color} |
 | `cycle_loop` | 순환 프로세스 | steps[]{label,desc}, center_label |
+| `venn_diagram` | 3원 벤 다이어그램 | circles[]{label,desc,color}, center_label |
+| `swot_matrix` | SWOT 분석 매트릭스 | quadrants[]{label,title,items[],color} |
+| `center_radial` | 중심 방사형 관계도 | center{label,desc}, directions[]{label,desc,color} |
+| `funnel` | 퍼널 다이어그램 | stages[]{label,value,desc,color} |
+| `zigzag_timeline` | 지그재그 타임라인 | steps[]{date,title,desc,color} |
+| `fishbone_cause_effect` | 피쉬본 원인-결과 | effect, categories[]{label,causes[],color} |
+| `org_chart` | 조직도/트리 | root{label,desc}, children[]{label,desc,items[],color} |
+| `temple_pillars` | 기둥형 구조도 | roof{label}, pillars[]{label,desc,color}, foundation{label} |
+| `infinity_loop` | 무한 순환 루프 | left_loop[],right_loop[],center_label |
+| `speedometer_gauge` | 스피도미터 게이지 | value, segments[]{label,color}, title |
+| `mind_map` | 마인드맵 | center{label}, branches[]{label,sub_branches[],color} |
 
 ## 의존성
 

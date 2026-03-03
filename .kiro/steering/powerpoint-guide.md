@@ -22,7 +22,7 @@
 rayhli-eks_guide_2026.py      orchestration         powerpoint_cover.py
 ss_db_migration_      (template copy,        powerpoint_toc.py
 resume.py              section removal,       powerpoint_content.py
-(data only)            slide management)      (27 layout renderers)
+(data only)            slide management)      (38 layout renderers)
 ```
 
 ## Dependencies
@@ -44,7 +44,7 @@ ppt-mcp/
 ├── generate.py                  # Orchestration script
 ├── rayhli-eks_guide_2026.py            # Steering file - AWS EKS Guide (data only)
 ├── rayhli-ss_db_migration_resume.py    # Steering file - DB Migration Resume (data only)
-├── powerpoint_content.py        # 27 layout renderers (24 unique + 3 aliases) + utility functions
+├── powerpoint_content.py        # 38 layout renderers (35 unique + 3 aliases) + utility functions
 ├── powerpoint_cover.py          # Cover slide renderer
 ├── powerpoint_toc.py            # TOC slide renderer
 ├── icons/                       # 40 PNG icons (512x512)
@@ -174,7 +174,7 @@ presentation_data = {
 
 ---
 
-## Available Layouts (27종: 고유 24종 + alias 3종)
+## Available Layouts (38종: 고유 35종 + alias 3종)
 
 | # | Layout | Code | Data Keys | 비고 |
 |---|--------|------|-----------|------|
@@ -205,6 +205,17 @@ presentation_data = {
 | 25 | Split Text+Code | `split_text_code` | description, bullets[], code_title, code | 설명+코드 병렬 |
 | 26 | Pyramid Hierarchy | `pyramid_hierarchy` | levels[]{label,desc,color} | 피라미드 계층 |
 | 27 | Cycle Loop | `cycle_loop` | steps[]{label,desc}, center_label | 순환 프로세스 |
+| 28 | Venn Diagram | `venn_diagram` | circles[]{label,desc,color}, center_label | 3원 벤 다이어그램 |
+| 29 | SWOT Matrix | `swot_matrix` | quadrants[]{label,title,items[],color} | 2×2 SWOT 분석 |
+| 30 | Center Radial | `center_radial` | center{label,desc}, directions[]{label,desc,color} | 중심 방사형 관계도 |
+| 31 | Funnel | `funnel` | stages[]{label,value,desc,color} | 퍼널 다이어그램 |
+| 32 | Zigzag Timeline | `zigzag_timeline` | steps[]{date,title,desc,color} | 지그재그 타임라인 |
+| 33 | Fishbone Cause-Effect | `fishbone_cause_effect` | effect, categories[]{label,causes[],color} | 피쉬본 원인-결과 |
+| 34 | Org Chart | `org_chart` | root{label,desc}, children[]{label,desc,items[],color} | 조직도/트리 |
+| 35 | Temple Pillars | `temple_pillars` | roof{label}, pillars[]{label,desc,color}, foundation{label} | 기둥형 구조도 |
+| 36 | Infinity Loop | `infinity_loop` | left_loop[],right_loop[],left_label,right_label,center_label | 무한 순환 루프 |
+| 37 | Speedometer Gauge | `speedometer_gauge` | value,segments[]{label,color},title | 스피도미터 게이지 |
+| 38 | Mind Map | `mind_map` | center{label}, branches[]{label,sub_branches[],color} | 마인드맵 |
 
 ### Detail Sections Diagram Types
 

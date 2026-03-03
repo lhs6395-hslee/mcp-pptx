@@ -99,7 +99,7 @@ presentation_data = {
             "section_title": "1. 섹션",
             "slides": [
                 {
-                    "l": "3_cards",          # 레이아웃 (27종 중 택 1)
+                    "l": "3_cards",          # 레이아웃 (38종 중 택 1)
                     "t": "슬라이드 제목",     # 헤더 좌측
                     "d": "설명",             # 헤더 우측
                     "data": { ... }          # 레이아웃별 데이터
@@ -110,7 +110,7 @@ presentation_data = {
 }
 ```
 
-## 27종 레이아웃
+## 38종 레이아웃
 
 | Layout | 용도 | Data Keys |
 |--------|------|-----------|
@@ -141,6 +141,17 @@ presentation_data = {
 | `split_text_code` | 설명+코드 | description, bullets[], code |
 | `pyramid_hierarchy` | 피라미드 계층 | levels[]{label,desc,color} |
 | `cycle_loop` | 순환 프로세스 | steps[]{label,desc}, center_label |
+| `venn_diagram` | 3원 벤 다이어그램 | circles[]{label,desc,color}, center_label |
+| `swot_matrix` | SWOT 분석 매트릭스 | quadrants[]{label,title,items[],color} |
+| `center_radial` | 중심 방사형 관계도 | center{label,desc}, directions[]{label,desc,color} |
+| `funnel` | 퍼널 다이어그램 | stages[]{label,value,desc,color} |
+| `zigzag_timeline` | 지그재그 타임라인 | steps[]{date,title,desc,color} |
+| `fishbone_cause_effect` | 피쉬본 원인-결과 | effect, categories[]{label,causes[],color} |
+| `org_chart` | 조직도/트리 | root{label,desc}, children[]{label,desc,items[],color} |
+| `temple_pillars` | 기둥형 구조도 | roof{label}, pillars[]{label,desc,color}, foundation{label} |
+| `infinity_loop` | 무한 순환 루프 | left_loop[],right_loop[],center_label |
+| `speedometer_gauge` | 스피도미터 게이지 | value, segments[]{label,color}, title |
+| `mind_map` | 마인드맵 | center{label}, branches[]{label,sub_branches[],color} |
 
 ## 프레젠테이션 생성 Best Practices
 
@@ -168,12 +179,13 @@ presentation_data = {
 
 | 콘텐츠 유형 | 추천 레이아웃 | 피해야 할 레이아웃 |
 |-------------|-------------|-------------------|
-| 개요/소개 | `bento_grid`, `3_cards`, `icon_grid` | `comparison_table`, `split_text_code` |
-| 프로세스/절차 | `process_arrow`, `timeline_steps`, `phased_columns` | `grid_2x2`, `quote_highlight` |
-| 비교/분석 | `comparison_vs`, `pros_cons`, `before_after` | `numbered_list`, `cycle_loop` |
+| 개요/소개 | `bento_grid`, `3_cards`, `icon_grid`, `venn_diagram` | `comparison_table`, `split_text_code` |
+| 프로세스/절차 | `process_arrow`, `timeline_steps`, `phased_columns`, `funnel`, `zigzag_timeline` | `grid_2x2`, `quote_highlight` |
+| 비교/분석 | `comparison_vs`, `pros_cons`, `before_after`, `swot_matrix`, `fishbone_cause_effect` | `numbered_list`, `cycle_loop` |
 | 기술 상세 | `split_text_code`, `detail_sections`, `table_callout` | `stats_dashboard`, `quote_highlight` |
-| 성과/KPI | `stats_dashboard`, `3_cards` (key_metric) | `split_text_code`, `pyramid_hierarchy` |
-| 아키텍처 | `architecture_wide`, `full_image`, `detail_image` | `numbered_list`, `do_dont` |
+| 성과/KPI | `stats_dashboard`, `3_cards` (key_metric), `speedometer_gauge` | `split_text_code`, `pyramid_hierarchy` |
+| 아키텍처 | `architecture_wide`, `full_image`, `detail_image`, `center_radial`, `org_chart` | `numbered_list`, `do_dont` |
+| 전략/구조 | `temple_pillars`, `mind_map`, `infinity_loop`, `pyramid_hierarchy` | `quote_highlight`, `stats_dashboard` |
 
 **레이아웃 다양성 규칙:**
 - 동일 레이아웃은 **최대 3장**까지 허용
@@ -246,7 +258,7 @@ terraform, timeline, verification
 |------|------|------|
 | 빈 슬라이드 | `data.data.data` 중첩 누락 | 3단계 중첩 확인 |
 | 아이콘 미표시 | 아이콘명 오타 또는 대문자 | `icons/` 폴더 파일명 확인 |
-| 레이아웃 무시됨 | `l` 키 오타 | 27종 레이아웃명 정확히 확인 |
+| 레이아웃 무시됨 | `l` 키 오타 | 38종 레이아웃명 정확히 확인 |
 | 텍스트 잘림 | 본문 영역(Y 2.0"~7.2") 초과 | 텍스트 축소 또는 레이아웃 분할 |
 | 이미지 안 나옴 | `image_path` 경로 오류 | 프로젝트 루트 기준 상대경로 확인 |
 

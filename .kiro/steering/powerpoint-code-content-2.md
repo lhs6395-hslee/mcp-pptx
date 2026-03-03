@@ -2,11 +2,11 @@
 
 **Part of**: [powerpoint-guide.md](./powerpoint-guide.md) 시스템 명세
 **Continues from**: [powerpoint-code-content.md](./powerpoint-code-content.md)
-**File**: `powerpoint_content.py` — Layouts 14~27 + Diagram helpers + Router
+**File**: `powerpoint_content.py` — Layouts 14~38 + Diagram helpers + Router
 
 ---
 
-## powerpoint_content.py (continued) — Diagram Helpers & Layouts 14~27
+## powerpoint_content.py (continued) — Diagram Helpers & Layouts 14~38
 
 아래 코드는 `powerpoint-code-content.md`의 코드에 이어서 같은 파일(`powerpoint_content.py`)에 포함됩니다.
 
@@ -269,9 +269,12 @@ def render_detail_sections(slide, data):
     w_right = (bw - gap) * 0.5
 
     # ── 좌측 콘텐츠 높이 사전 계산 ──
-    overview = content.get('overview', {})
-    highlight = content.get('highlight', {})
-    condition = content.get('condition', {})
+    _ov = content.get('overview', '')
+    _hl = content.get('highlight', '')
+    _cn = content.get('condition', '')
+    overview = _ov if isinstance(_ov, dict) else {'title': '개요', 'body': str(_ov)} if _ov else {}
+    highlight = _hl if isinstance(_hl, dict) else {'title': '핵심 성과', 'body': str(_hl)} if _hl else {}
+    condition = _cn if isinstance(_cn, dict) else {'title': '적용 조건', 'body': str(_cn)} if _cn else {}
 
     section_count = sum([1 for s in [overview, highlight, condition] if s])
     if section_count == 0:
@@ -478,7 +481,7 @@ def render_table_callout(slide, data):
         tf = shp.text_frame; tf.clear()
         tf.vertical_anchor = MSO_ANCHOR.MIDDLE
         p = tf.paragraphs[0]
-        p.text = col.get('title', '')
+        p.text = col.get('title', '') if isinstance(col, dict) else str(col)
         p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
         p.font.size = Pt(15); p.font.color.rgb = COLORS["BG_WHITE"]
         p.alignment = PP_ALIGN.CENTER
@@ -490,7 +493,7 @@ def render_table_callout(slide, data):
 
         for row_idx, row in enumerate(rows):
             row_y = by + header_h + Inches(0.15) + (row_idx * row_h)
-            values = row.get('values', [])
+            values = row if isinstance(row, list) else row.get('values', [])
 
             for col_idx in range(n_cols):
                 x = bx + col_idx * (w_col + gap)
@@ -660,7 +663,8 @@ def render_before_after(slide, data):
     wrapper = data.get('data', {})
     y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
     bx, by, bw, bh = calculate_dynamic_rect(y_start)
-    content = wrapper.get('data', {})
+    # before_after는 wrapper 레벨에서 직접 읽음 (예외)
+    content = wrapper
 
     arrow_gap = Inches(0.8)
     w_half = (bw - arrow_gap) / 2
@@ -840,10 +844,19 @@ def render_numbered_list(slide, data):
     if not items:
         return
 
-    gap = Inches(0.15)
-    item_h = (bh - gap * (len(items) - 1)) / len(items)
-    badge_size = Inches(0.65)
-    text_left = badge_size + Inches(0.3)
+    n = len(items)
+    # 항목 수에 따른 동적 크기 조절
+    if n <= 4:
+        gap = Inches(0.15); badge_size = Inches(0.65); title_pt = 16; desc_pt = 13; badge_pt = 22
+    elif n <= 5:
+        gap = Inches(0.12); badge_size = Inches(0.55); title_pt = 15; desc_pt = 12; badge_pt = 20
+    elif n <= 6:
+        gap = Inches(0.10); badge_size = Inches(0.48); title_pt = 13; desc_pt = 11; badge_pt = 18
+    else:
+        gap = Inches(0.08); badge_size = Inches(0.42); title_pt = 12; desc_pt = 10; badge_pt = 16
+
+    item_h = (bh - gap * (n - 1)) / n
+    text_left = badge_size + Inches(0.25)
 
     for i, item in enumerate(items):
         y = by + i * (item_h + gap)
@@ -856,7 +869,7 @@ def render_numbered_list(slide, data):
         bar.line.width = Pt(1.0)
 
         # 번호 배지
-        badge_x = bx + Inches(0.2)
+        badge_x = bx + Inches(0.15)
         badge_y = y + (item_h - badge_size) / 2
         badge = slide.shapes.add_shape(MSO_SHAPE.OVAL, badge_x, badge_y, badge_size, badge_size)
         badge.fill.solid()
@@ -868,23 +881,24 @@ def render_numbered_list(slide, data):
         p = tf_badge.paragraphs[0]
         p.text = str(i + 1)
         p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
-        p.font.size = Pt(22); p.font.color.rgb = COLORS["BG_WHITE"]
+        p.font.size = Pt(badge_pt); p.font.color.rgb = COLORS["BG_WHITE"]
         p.alignment = PP_ALIGN.CENTER
 
         # 텍스트 (제목 + 설명)
         text_x = bx + text_left + Inches(0.1)
         text_w = bw - text_left - Inches(0.3)
-        tb = slide.shapes.add_textbox(text_x, y + Inches(0.1), text_w, item_h - Inches(0.2))
+        tb = slide.shapes.add_textbox(text_x, y + Inches(0.05), text_w, item_h - Inches(0.1))
         tf = tb.text_frame; tf.word_wrap = True; tf.clear()
         tf.vertical_anchor = MSO_ANCHOR.MIDDLE
         tf.margin_left = Inches(0.1); tf.margin_right = Inches(0.1)
+        tf.margin_top = Inches(0.02); tf.margin_bottom = Inches(0.02)
 
         # 제목
         p = tf.paragraphs[0]
         p.text = item.get('title', '')
         p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
-        p.font.size = Pt(16); p.font.color.rgb = COLORS["DARK_GRAY"]
-        p.space_after = Pt(4)
+        p.font.size = Pt(title_pt); p.font.color.rgb = COLORS["DARK_GRAY"]
+        p.space_after = Pt(2)
 
         # 설명
         desc = item.get('desc', '')
@@ -892,9 +906,9 @@ def render_numbered_list(slide, data):
             for j, line in enumerate(desc.split('\n')):
                 p2 = tf.add_paragraph()
                 p2.text = line
-                p2.font.name = FONTS["BODY_TEXT"]; p2.font.size = Pt(13)
+                p2.font.name = FONTS["BODY_TEXT"]; p2.font.size = Pt(desc_pt)
                 p2.font.color.rgb = COLORS["GRAY"]
-                p2.space_after = Pt(2); p2.line_spacing = 1.2
+                p2.space_after = Pt(1); p2.line_spacing = 1.1
 
 
 # 20. Stats Dashboard (KPI/대형 숫자 표시)
@@ -1187,8 +1201,10 @@ def render_cycle_loop(slide, data):
     steps = content.get('steps', [])
     if not steps: return
     n = len(steps); center_label = content.get('center_label', '')
-    side = min(int(bw), int(bh)); cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
-    radius = side // 2 - Inches(0.8)
+    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
+    # 와이드스크린 대응: 타원형 반경 (가로 넓게, 세로 좁게)
+    radius_x = int(bw) // 2 - Inches(1.2)
+    radius_y = int(bh) // 2 - Inches(0.8)
 
     if center_label:
         center_size = Inches(1.6)
@@ -1207,8 +1223,8 @@ def render_cycle_loop(slide, data):
     box_w = Inches(1.8); box_h = Inches(1.2)
     for i, step in enumerate(steps):
         angle = -math.pi / 2 + (2 * math.pi * i / n)
-        sx = cx + int(radius * math.cos(angle)) - int(box_w) // 2
-        sy = cy + int(radius * math.sin(angle)) - int(box_h) // 2
+        sx = cx + int(radius_x * math.cos(angle)) - int(box_w) // 2
+        sy = cy + int(radius_y * math.sin(angle)) - int(box_h) // 2
         accent, bg = step_colors[i % len(step_colors)]
 
         shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, sx, sy, int(box_w), int(box_h))
@@ -1224,14 +1240,742 @@ def render_cycle_loop(slide, data):
         next_i = (i + 1) % n; next_angle = -math.pi / 2 + (2 * math.pi * next_i / n)
         mid_angle = (angle + next_angle) / 2
         if next_i == 0 and i == n - 1: mid_angle = angle + (2 * math.pi / n) / 2
-        arrow_r = int(radius * 0.65)
-        arrow_x = cx + int(arrow_r * math.cos(mid_angle)) - Inches(0.15)
-        arrow_y = cy + int(arrow_r * math.sin(mid_angle)) - Inches(0.15)
+        arrow_rx = int(radius_x * 0.65); arrow_ry = int(radius_y * 0.65)
+        arrow_x = cx + int(arrow_rx * math.cos(mid_angle)) - Inches(0.15)
+        arrow_y = cy + int(arrow_ry * math.sin(mid_angle)) - Inches(0.15)
         arrow_size = Inches(0.3)
         arrow = slide.shapes.add_shape(MSO_SHAPE.OVAL, arrow_x, arrow_y, int(arrow_size), int(arrow_size))
         arrow.fill.solid(); arrow.fill.fore_color.rgb = COLORS["PRIMARY"]; arrow.line.color.rgb = COLORS["PRIMARY"]
         tf = arrow.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
         p = tf.paragraphs[0]; p.text = "\u27A4"; p.font.size = Pt(10); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+
+# 27. Venn Diagram (벤 다이어그램)
+def render_venn_diagram(slide, data):
+    """3개 겹치는 원 + 교집합 영역으로 관계/공통요소 표현
+
+    data.data.data:
+        circles: [
+            {"label": "기술", "desc": "클라우드, DevOps", "color": "blue"},
+            {"label": "비즈니스", "desc": "ROI, 효율성", "color": "green"},
+            {"label": "인력", "desc": "역량, 조직문화", "color": "orange"}
+        ]
+        center_label: "디지털 전환"  (교집합 라벨)
+    """
+    import math
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    circles = content.get('circles', [])
+    if not circles: return
+    center_label = content.get('center_label', '')
+    n = min(len(circles), 3)
+
+    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
+    side = min(int(bw), int(bh))
+    circle_d = int(side * 0.55)  # 원 지름
+    offset = int(side * 0.15)     # 원 중심 간 오프셋
+
+    circle_colors = [
+        ('blue', RGBColor(0, 67, 218)),
+        ('green', RGBColor(4, 120, 87)),
+        ('orange', RGBColor(194, 65, 12)),
+    ]
+
+    # 원 3개 배치 (정삼각형 꼭짓점)
+    for i in range(n):
+        angle = -math.pi / 2 + (2 * math.pi * i / n)
+        ox = cx + int(offset * math.cos(angle)) - circle_d // 2
+        oy = cy + int(offset * math.sin(angle)) - circle_d // 2
+
+        color_key = circles[i].get('color', circle_colors[i % 3][0])
+        _, line_c, _ = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+        fill_c = circle_colors[i % 3][1]
+
+        shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, ox, oy, circle_d, circle_d)
+        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c
+        shp.fill.fore_color.brightness = 0.0
+        # 반투명 효과 (alpha) — XML 조작이므로 try/except 필수
+        try:
+            from pptx.oxml.ns import qn
+            solid_fill = shp.fill._fill.find(qn('a:solidFill'))
+            if solid_fill is not None:
+                srgb = solid_fill.find(qn('a:srgbClr'))
+                if srgb is not None:
+                    alpha_el = srgb.makeelement(qn('a:alpha'), {})
+                    alpha_el.set('val', '35000')  # 35% 불투명도
+                    srgb.append(alpha_el)
+        except Exception:
+            pass
+        shp.line.color.rgb = fill_c; shp.line.width = Pt(2.5)
+
+    # 원 라벨 (원 외곽에 배치)
+    label_offset = int(side * 0.42)
+    for i in range(n):
+        angle = -math.pi / 2 + (2 * math.pi * i / n)
+        lx = cx + int(label_offset * math.cos(angle))
+        ly = cy + int(label_offset * math.sin(angle))
+
+        label_w = Inches(2.2); label_h = Inches(0.9)
+        tb = slide.shapes.add_textbox(lx - int(label_w) // 2, ly - int(label_h) // 2, int(label_w), int(label_h))
+        tf = tb.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = circles[i].get('label', ''); p.font.name = FONTS["BODY_TITLE"]
+        p.font.bold = True; p.font.size = Pt(16); p.font.color.rgb = circle_colors[i % 3][1]; p.alignment = PP_ALIGN.CENTER
+        desc = circles[i].get('desc', '')
+        if desc:
+            p2 = tf.add_paragraph(); p2.text = desc; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(11); p2.font.color.rgb = COLORS["GRAY"]; p2.alignment = PP_ALIGN.CENTER
+
+    # 중앙 교집합 라벨
+    if center_label:
+        cl_w = Inches(1.8); cl_h = Inches(0.8)
+        center_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, cx - int(cl_w) // 2, cy - int(cl_h) // 2, int(cl_w), int(cl_h))
+        center_box.fill.solid(); center_box.fill.fore_color.rgb = COLORS["PRIMARY"]
+        center_box.line.color.rgb = COLORS["PRIMARY"]; center_box.line.width = Pt(2.0)
+        center_box.shadow.inherit = False
+        tf = center_box.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = center_label; p.font.name = FONTS["BODY_TITLE"]
+        p.font.bold = True; p.font.size = Pt(14); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+
+# 28. SWOT Matrix (SWOT 분석 매트릭스)
+def render_swot_matrix(slide, data):
+    """2×2 그리드 + 중앙 축 라벨 (S/W/O/T 또는 커스텀)
+
+    data.data.data:
+        quadrants: [
+            {"label": "S", "title": "Strengths", "items": ["기술력", "경험"], "color": "blue"},
+            {"label": "W", "title": "Weaknesses", "items": ["인력부족"], "color": "red"},
+            {"label": "O", "title": "Opportunities", "items": ["시장확대"], "color": "green"},
+            {"label": "T", "title": "Threats", "items": ["경쟁심화"], "color": "orange"}
+        ]
+    """
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    quadrants = content.get('quadrants', [])
+    if len(quadrants) < 4: return
+
+    gap = Inches(0.5)   # 중앙 라벨 영역
+    cell_w = (bw - gap) / 2; cell_h = (bh - gap) / 2
+
+    positions = [
+        (bx, by),                           # 좌상 (S)
+        (bx + cell_w + gap, by),             # 우상 (W)
+        (bx, by + cell_h + gap),             # 좌하 (O)
+        (bx + cell_w + gap, by + cell_h + gap),  # 우하 (T)
+    ]
+
+    default_colors = ['blue', 'red', 'green', 'orange']
+
+    for i, q in enumerate(quadrants[:4]):
+        qx, qy = positions[i]
+        color_key = q.get('color', default_colors[i])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        # 사분면 박스
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, int(qx), int(qy), int(cell_w), int(cell_h))
+        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c
+        shp.line.color.rgb = line_c; shp.line.width = Pt(2.0)
+
+        tf = shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.TOP
+        tf.margin_left = Inches(0.2); tf.margin_right = Inches(0.2); tf.margin_top = Inches(0.15)
+
+        # 제목 (예: "Strengths")
+        title = q.get('title', '')
+        p = tf.paragraphs[0]; p.text = title; p.font.name = FONTS["BODY_TITLE"]
+        p.font.bold = True; p.font.size = Pt(15); p.font.color.rgb = line_c; p.space_after = Pt(6)
+
+        # 항목 리스트
+        items = q.get('items', [])
+        for item in items:
+            p2 = tf.add_paragraph(); p2.text = f"• {item}"; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(12); p2.font.color.rgb = text_c; p2.space_after = Pt(3); p2.line_spacing = 1.2
+
+    # 중앙 라벨 (S/W/O/T)
+    label_size = Inches(0.45)
+    label_positions = [
+        (bx + cell_w - label_size / 2 + gap / 2, by + cell_h - label_size / 2 + gap / 2),  # 중앙
+    ]
+    # 4개 라벨을 중앙 교차점에 배치
+    cx = int(bx + cell_w + gap / 2); cy_mid = int(by + cell_h + gap / 2)
+    labels_pos = [
+        (cx - int(label_size) - Inches(0.02), cy_mid - int(label_size) - Inches(0.02)),  # S (좌상)
+        (cx + Inches(0.02), cy_mid - int(label_size) - Inches(0.02)),                    # W (우상)
+        (cx - int(label_size) - Inches(0.02), cy_mid + Inches(0.02)),                    # O (좌하)
+        (cx + Inches(0.02), cy_mid + Inches(0.02)),                                       # T (우하)
+    ]
+
+    for i, q in enumerate(quadrants[:4]):
+        lx, ly = labels_pos[i]
+        color_key = q.get('color', default_colors[i])
+        _, line_c, _ = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        lbl = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, int(lx), int(ly), int(label_size), int(label_size))
+        lbl.fill.solid(); lbl.fill.fore_color.rgb = line_c; lbl.line.color.rgb = line_c
+        tf = lbl.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = q.get('label', ''); p.font.name = FONTS["BODY_TITLE"]
+        p.font.bold = True; p.font.size = Pt(18); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+
+# 29. Center Radial (중심 방사형 관계도)
+def render_center_radial(slide, data):
+    """중앙 원 + 4방향 화살표 + 코너 라벨/설명
+
+    data.data.data:
+        center: {"label": "핵심 전략", "desc": "디지털 트랜스포메이션"}
+        directions: [
+            {"label": "기술", "desc": "클라우드, AI, DevOps", "color": "blue"},
+            {"label": "프로세스", "desc": "자동화, 표준화", "color": "green"},
+            {"label": "인력", "desc": "역량강화, 교육", "color": "orange"},
+            {"label": "문화", "desc": "혁신, 협업", "color": "red"}
+        ]
+    """
+    import math
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    center = content.get('center', {}); directions = content.get('directions', [])
+    if not directions: return
+
+    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
+    side = min(int(bw), int(bh))
+    rx_scale = int(bw) / side if side > 0 else 1.0  # 와이드스크린 가로 확장 비율
+
+    # 중앙 원
+    center_d = int(side * 0.3)
+    center_shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, cx - center_d // 2, cy - center_d // 2, center_d, center_d)
+    center_shp.fill.solid(); center_shp.fill.fore_color.rgb = COLORS["PRIMARY"]
+    center_shp.line.color.rgb = COLORS["PRIMARY"]; center_shp.line.width = Pt(3.0)
+    tf = center_shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.margin_left = Inches(0.1); tf.margin_right = Inches(0.1)
+    p = tf.paragraphs[0]; p.text = center.get('label', ''); p.font.name = FONTS["BODY_TITLE"]
+    p.font.bold = True; p.font.size = Pt(16); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+    c_desc = center.get('desc', '')
+    if c_desc:
+        p2 = tf.add_paragraph(); p2.text = c_desc; p2.font.name = FONTS["BODY_TEXT"]
+        p2.font.size = Pt(10); p2.font.color.rgb = RGBColor(200, 215, 255); p2.alignment = PP_ALIGN.CENTER
+
+    # 4방향: 우상, 우하, 좌하, 좌상 (대각선)
+    n = min(len(directions), 4)
+    angles = [-math.pi / 4, math.pi / 4, 3 * math.pi / 4, -3 * math.pi / 4]  # 우상, 우하, 좌하, 좌상
+    arrow_len = Inches(0.5)
+    default_colors_r = ['blue', 'green', 'orange', 'red']
+
+    for i in range(n):
+        angle = angles[i]
+        color_key = directions[i].get('color', default_colors_r[i])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        # 화살표 시작/끝 좌표
+        arrow_start = int(center_d * 0.52)  # 원 가장자리
+        arrow_end = int(side * 0.32)          # 코너 박스까지 (가로 확장 적용)
+        ax1 = cx + int(arrow_start * rx_scale * math.cos(angle))
+        ay1 = cy + int(arrow_start * math.sin(angle))
+        ax2 = cx + int(arrow_end * rx_scale * math.cos(angle))
+        ay2 = cy + int(arrow_end * math.sin(angle))
+
+        # 연결선 (직선)
+        connector = slide.shapes.add_connector(1, ax1, ay1, ax2, ay2)  # 1 = straight
+        connector.line.color.rgb = line_c; connector.line.width = Pt(2.5)
+
+        # 화살표 끝 포인트 (삼각형)
+        arrow_size = Inches(0.25)
+        arrow_x = ax2 - int(arrow_size) // 2; arrow_y = ay2 - int(arrow_size) // 2
+        arr_shp = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, arrow_x, arrow_y, int(arrow_size), int(arrow_size))
+        arr_shp.fill.solid(); arr_shp.fill.fore_color.rgb = line_c; arr_shp.line.color.rgb = line_c
+        # 회전: 방향에 따라
+        rotation_deg = math.degrees(angle) + 90
+        arr_shp.rotation = rotation_deg
+
+        # 코너 카드
+        card_w = Inches(2.2); card_h = Inches(1.3)
+        card_offset = int(side * 0.38)
+        card_cx = cx + int(card_offset * rx_scale * math.cos(angle))
+        card_cy = cy + int(card_offset * math.sin(angle))
+        card_x = card_cx - int(card_w) // 2; card_y = card_cy - int(card_h) // 2
+
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, card_x, card_y, int(card_w), int(card_h))
+        card.fill.solid(); card.fill.fore_color.rgb = fill_c
+        card.line.color.rgb = line_c; card.line.width = Pt(2.0)
+        tf = card.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = Inches(0.15); tf.margin_right = Inches(0.15)
+        p = tf.paragraphs[0]; p.text = directions[i].get('label', ''); p.font.name = FONTS["BODY_TITLE"]
+        p.font.bold = True; p.font.size = Pt(14); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(4)
+        d_desc = directions[i].get('desc', '')
+        if d_desc:
+            p2 = tf.add_paragraph(); p2.text = d_desc; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(11); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.CENTER
+
+
+# 30. Funnel (퍼널 다이어그램)
+def render_funnel(slide, data):
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    stages = content.get('stages', [])
+    if not stages: return
+    n = len(stages); gap = Inches(0.06); level_h = (bh - gap * (n - 1)) / n; center_x = bx + bw / 2
+    max_w = bw * 0.95; min_w = bw * 0.25
+
+    for i, stage in enumerate(stages):
+        ratio = i / max(n - 1, 1); level_w = max_w - (max_w - min_w) * ratio
+        level_x = center_x - level_w / 2; level_y = by + i * (level_h + gap)
+        color_key = stage.get('color', 'primary')
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, int(level_x), int(level_y), int(level_w), int(level_h))
+        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c; shp.line.color.rgb = line_c; shp.line.width = Pt(2.0)
+        tf = shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = Inches(0.2); tf.margin_right = Inches(0.2)
+
+        value = stage.get('value', '')
+        label = stage.get('label', '')
+        if value:
+            p = tf.paragraphs[0]; p.text = f"{label}  {value}"; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True; p.font.size = Pt(16); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(2)
+        else:
+            p = tf.paragraphs[0]; p.text = label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True; p.font.size = Pt(16); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(2)
+        desc = stage.get('desc', '')
+        if desc:
+            p2 = tf.add_paragraph(); p2.text = desc; p2.font.name = FONTS["BODY_TEXT"]; p2.font.size = Pt(11); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.CENTER
+
+
+# 31. Zigzag Timeline (지그재그 타임라인)
+def render_zigzag_timeline(slide, data):
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    steps = content.get('steps', [])
+    if not steps: return
+    n = len(steps)
+
+    # 카드 크기 및 레이아웃 계산
+    card_w = min(Inches(2.0), int(bw / max(n, 4) * 1.3)); card_h = Inches(1.3)
+    top_y = int(by); bottom_y = int(by + bh) - card_h
+    mid_y = int(by) + int(bh) // 2
+    col_step = int(bw) / max(n, 1)
+
+    step_colors = [
+        (COLORS["PRIMARY"], COLORS["SEM_BLUE_BG"]), (COLORS["SEM_GREEN"], COLORS["SEM_GREEN_BG"]),
+        (COLORS["SEM_ORANGE"], COLORS["SEM_ORANGE_BG"]), (COLORS["SEM_RED"], COLORS["SEM_RED_BG"]),
+        (RGBColor(30, 58, 138), RGBColor(239, 246, 255)), (RGBColor(4, 120, 87), RGBColor(236, 253, 245)),
+        (RGBColor(194, 65, 12), RGBColor(255, 247, 237)), (RGBColor(185, 28, 28), RGBColor(254, 242, 242)),
+    ]
+
+    # 중앙 가로선 (배경 타임라인)
+    line_shp = slide.shapes.add_connector(1, int(bx) + Inches(0.2), mid_y, int(bx + bw) - Inches(0.2), mid_y)
+    line_shp.line.color.rgb = COLORS["BORDER"]; line_shp.line.width = Pt(2.0)
+    line_shp.line.dash_style = 2  # dash
+
+    for i, step in enumerate(steps):
+        accent, bg = step_colors[i % len(step_colors)]
+        cx = int(bx) + int(col_step * i) + int(col_step - card_w) // 2
+        is_top = (i % 2 == 0)
+        card_y = top_y if is_top else bottom_y
+
+        # 수직 연결선 (카드 → 중앙선)
+        conn_x = cx + card_w // 2
+        if is_top:
+            conn_y1 = card_y + card_h; conn_y2 = mid_y
+        else:
+            conn_y1 = mid_y; conn_y2 = card_y
+        connector = slide.shapes.add_connector(1, conn_x, conn_y1, conn_x, conn_y2)
+        connector.line.color.rgb = accent; connector.line.width = Pt(1.5)
+
+        # 중앙선 위 마커 원
+        marker_size = Inches(0.2)
+        marker = slide.shapes.add_shape(MSO_SHAPE.OVAL, conn_x - int(marker_size) // 2, mid_y - int(marker_size) // 2, int(marker_size), int(marker_size))
+        marker.fill.solid(); marker.fill.fore_color.rgb = accent; marker.line.color.rgb = accent
+
+        # 카드
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, cx, card_y, card_w, card_h)
+        shp.fill.solid(); shp.fill.fore_color.rgb = bg; shp.line.color.rgb = accent; shp.line.width = Pt(2.0)
+        tf = shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = Inches(0.1); tf.margin_right = Inches(0.1)
+
+        date = step.get('date', '')
+        if date:
+            p0 = tf.paragraphs[0]; p0.text = date; p0.font.name = FONTS["BODY_TEXT"]; p0.font.size = Pt(9); p0.font.color.rgb = accent; p0.alignment = PP_ALIGN.CENTER; p0.space_after = Pt(2)
+            p1 = tf.add_paragraph()
+        else:
+            p1 = tf.paragraphs[0]
+        p1.text = step.get('title', ''); p1.font.name = FONTS["BODY_TITLE"]; p1.font.bold = True; p1.font.size = Pt(12); p1.font.color.rgb = accent; p1.alignment = PP_ALIGN.CENTER; p1.space_after = Pt(2)
+        desc = step.get('desc', '')
+        if desc:
+            p2 = tf.add_paragraph(); p2.text = desc; p2.font.name = FONTS["BODY_TEXT"]; p2.font.size = Pt(9); p2.font.color.rgb = COLORS["GRAY"]; p2.alignment = PP_ALIGN.CENTER
+
+
+# 32. Fishbone Cause-Effect (피쉬본 원인-결과)
+def render_fishbone_cause_effect(slide, data):
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    effect = content.get('effect', ''); categories = content.get('categories', [])
+    if not categories: return
+    n = len(categories)
+
+    spine_y = int(by) + int(bh) // 2
+    spine_x1 = int(bx) + Inches(0.2); spine_x2 = int(bx + bw) - Inches(2.2)
+    spine = slide.shapes.add_connector(1, spine_x1, spine_y, spine_x2, spine_y)
+    spine.line.color.rgb = COLORS["PRIMARY"]; spine.line.width = Pt(3.0)
+
+    # 효과 박스 (오른쪽 화살촉)
+    eff_w = Inches(2.2); eff_h = Inches(0.9)
+    eff_shp = slide.shapes.add_shape(MSO_SHAPE.CHEVRON, spine_x2 - Inches(0.2), spine_y - int(eff_h) // 2, int(eff_w), int(eff_h))
+    eff_shp.fill.solid(); eff_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; eff_shp.line.color.rgb = COLORS["PRIMARY"]
+    tf = eff_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE; tf.margin_left = Inches(0.3)
+    p = tf.paragraphs[0]; p.text = effect; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True; p.font.size = Pt(14); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+    usable_w = spine_x2 - spine_x1 - Inches(0.3); spacing = int(usable_w) / max(n, 1)
+    branch_h = int(bh * 0.25); default_colors = ['blue', 'green', 'orange', 'red', 'primary', 'gray']
+
+    for i, cat in enumerate(categories):
+        is_top = (i % 2 == 0)
+        cx = spine_x1 + Inches(0.3) + int(spacing * i) + int(spacing * 0.5)
+        color_key = cat.get('color', default_colors[i % len(default_colors)])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+        end_y = spine_y - branch_h if is_top else spine_y + branch_h
+
+        conn = slide.shapes.add_connector(1, cx, spine_y, cx, end_y)
+        conn.line.color.rgb = line_c; conn.line.width = Pt(2.0)
+
+        card_w = min(Inches(1.8), int(spacing * 0.85)); card_h = Inches(0.9)
+        card_x = cx - int(card_w) // 2; card_y = (end_y - int(card_h)) if is_top else end_y
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, card_x, card_y, int(card_w), int(card_h))
+        card.fill.solid(); card.fill.fore_color.rgb = fill_c; card.line.color.rgb = line_c; card.line.width = Pt(1.5)
+        tf = card.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.TOP
+        tf.margin_left = Inches(0.08); tf.margin_right = Inches(0.08); tf.margin_top = Inches(0.05)
+        p = tf.paragraphs[0]; p.text = cat.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(10); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(2)
+        for cause in cat.get('causes', [])[:3]:
+            p2 = tf.add_paragraph(); p2.text = f"• {cause}"; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(7); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.LEFT; p2.space_after = Pt(0)
+
+
+# 33. Org Chart (조직도/트리 계층)
+def render_org_chart(slide, data):
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    root = content.get('root', {}); children = content.get('children', [])
+    if not root: return
+
+    # 루트 노드
+    root_w = Inches(2.5); root_h = Inches(0.8)
+    root_x = int(bx) + int(bw) // 2 - int(root_w) // 2; root_y = int(by)
+    root_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, root_x, root_y, int(root_w), int(root_h))
+    root_shp.fill.solid(); root_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; root_shp.line.color.rgb = COLORS["PRIMARY"]
+    tf = root_shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]; p.text = root.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+    p.font.size = Pt(16); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+    if root.get('desc'):
+        p2 = tf.add_paragraph(); p2.text = root['desc']; p2.font.name = FONTS["BODY_TEXT"]
+        p2.font.size = Pt(10); p2.font.color.rgb = COLORS["BG_WHITE"]; p2.alignment = PP_ALIGN.CENTER
+
+    if not children: return
+    n = len(children)
+
+    # 자식 노드 배치 (전체 폭 사용)
+    connector_gap = Inches(0.5)
+    child_y = int(by) + int(root_h) + int(connector_gap)
+    gap_between = Inches(0.2)
+    child_w = (int(bw) - int(gap_between) * (n - 1)) // max(n, 1)
+    child_h = int(bh) - int(root_h) - int(connector_gap)
+    total_w = child_w * n + int(gap_between) * (n - 1)
+    start_x = int(bx) + (int(bw) - total_w) // 2
+    root_bottom_y = root_y + int(root_h)
+    mid_y = root_bottom_y + int(connector_gap) // 2
+    root_cx = root_x + int(root_w) // 2
+
+    # 수직선 + 수평 연결선
+    vert = slide.shapes.add_connector(1, root_cx, root_bottom_y, root_cx, mid_y)
+    vert.line.color.rgb = COLORS["PRIMARY"]; vert.line.width = Pt(2.0)
+    first_cx = start_x + child_w // 2; last_cx = start_x + total_w - child_w // 2
+    if n > 1:
+        horiz = slide.shapes.add_connector(1, first_cx, mid_y, last_cx, mid_y)
+        horiz.line.color.rgb = COLORS["PRIMARY"]; horiz.line.width = Pt(2.0)
+
+    # 자식 수에 따라 폰트 크기 동적 조절
+    if n >= 5:
+        label_sz = Pt(10); desc_sz = Pt(8); item_sz = Pt(7)
+    elif n >= 4:
+        label_sz = Pt(11); desc_sz = Pt(9); item_sz = Pt(8)
+    else:
+        label_sz = Pt(13); desc_sz = Pt(10); item_sz = Pt(9)
+
+    default_colors = ['blue', 'green', 'orange', 'red', 'primary', 'gray']
+    for i, child in enumerate(children):
+        cx = start_x + int((child_w + int(gap_between)) * i)
+        ccx = cx + child_w // 2
+        cv = slide.shapes.add_connector(1, ccx, mid_y, ccx, child_y)
+        cv.line.color.rgb = COLORS["PRIMARY"]; cv.line.width = Pt(2.0)
+        color_key = child.get('color', default_colors[i % len(default_colors)])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, cx, child_y, child_w, child_h)
+        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c; shp.line.color.rgb = line_c; shp.line.width = Pt(2.0)
+        tf = shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.TOP
+        tf.margin_left = Inches(0.12); tf.margin_right = Inches(0.12); tf.margin_top = Inches(0.15)
+        p = tf.paragraphs[0]; p.text = child.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = label_sz; p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(4)
+        desc = child.get('desc', '')
+        if desc:
+            p2 = tf.add_paragraph(); p2.text = desc; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = desc_sz; p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.CENTER; p2.space_after = Pt(6)
+        for item in child.get('items', [])[:3]:
+            p3 = tf.add_paragraph(); p3.text = f"• {item}"; p3.font.name = FONTS["BODY_TEXT"]
+            p3.font.size = item_sz; p3.font.color.rgb = text_c; p3.alignment = PP_ALIGN.LEFT; p3.space_after = Pt(2)
+
+
+# 34. Temple Pillars (기둥형 구조도)
+def render_temple_pillars(slide, data):
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    roof = content.get('roof', {}); pillars = content.get('pillars', []); foundation = content.get('foundation', {})
+    if not pillars: return
+    n = len(pillars)
+
+    roof_h = Inches(0.7); found_h = Inches(0.6); gap = Inches(0.12)
+    pillar_h = int(bh) - int(roof_h) - int(found_h) - int(gap) * 2
+
+    # 지붕 (삼각 페디먼트)
+    roof_shp = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, int(bx), int(by), int(bw), int(roof_h))
+    roof_shp.fill.solid(); roof_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; roof_shp.line.color.rgb = COLORS["PRIMARY"]
+    tf = roof_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]; p.text = roof.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+    p.font.size = Pt(14); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+    # 기둥들
+    pillar_y = int(by) + int(roof_h) + int(gap)
+    pillar_gap = Inches(0.15)
+    pillar_w = (int(bw) - int(pillar_gap) * (n - 1)) / max(n, 1)
+    default_colors = ['blue', 'green', 'orange', 'red', 'primary', 'gray']
+    for i, pil in enumerate(pillars):
+        px = int(bx) + int((pillar_w + int(pillar_gap)) * i)
+        color_key = pil.get('color', default_colors[i % len(default_colors)])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, int(px), pillar_y, int(pillar_w), pillar_h)
+        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c; shp.line.color.rgb = line_c; shp.line.width = Pt(2.0)
+        tf = shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = Inches(0.12); tf.margin_right = Inches(0.12)
+        p = tf.paragraphs[0]; p.text = pil.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(14); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(4)
+        desc = pil.get('desc', '')
+        if desc:
+            p2 = tf.add_paragraph(); p2.text = desc; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(10); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.CENTER
+
+    # 기초 (토대)
+    found_y = pillar_y + pillar_h + int(gap)
+    found_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, int(bx), found_y, int(bw), int(found_h))
+    found_shp.fill.solid(); found_shp.fill.fore_color.rgb = COLORS["SEM_BLUE_BG"]
+    found_shp.line.color.rgb = COLORS["PRIMARY"]; found_shp.line.width = Pt(2.0)
+    tf = found_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]; p.text = foundation.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+    p.font.size = Pt(13); p.font.color.rgb = COLORS["PRIMARY"]; p.alignment = PP_ALIGN.CENTER
+
+
+# 35. Infinity Loop (무한 순환 루프)
+def render_infinity_loop(slide, data):
+    import math
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    left_items = content.get('left_loop', []); right_items = content.get('right_loop', [])
+    center_label = content.get('center_label', '')
+    left_label = content.get('left_label', ''); right_label = content.get('right_label', '')
+    if not left_items and not right_items: return
+
+    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
+    # 가로 타원 — 원이 아닌 넓은 타원으로 infinity 모양 구현
+    oval_w = int(bw * 0.46); oval_h = int(bh * 0.72)
+    overlap = int(oval_w * 0.15)
+    left_cx = cx - (oval_w - overlap) // 2; right_cx = cx + (oval_w - overlap) // 2
+
+    from pptx.oxml.ns import qn as _qn
+    def _set_alpha(shape, val='30000'):
+        try:
+            sf = shape.fill._fill.find(_qn('a:solidFill'))
+            if sf is not None:
+                sc = sf.find(_qn('a:srgbClr'))
+                if sc is not None:
+                    a_el = sc.makeelement(_qn('a:alpha'), {}); a_el.set('val', val); sc.append(a_el)
+        except Exception: pass
+
+    # 왼쪽 타원 (반투명)
+    left_oval = slide.shapes.add_shape(MSO_SHAPE.OVAL, left_cx - oval_w // 2, cy - oval_h // 2, oval_w, oval_h)
+    left_oval.fill.solid(); left_oval.fill.fore_color.rgb = COLORS["SEM_BLUE_BG"]
+    left_oval.line.color.rgb = COLORS["PRIMARY"]; left_oval.line.width = Pt(2.5)
+    _set_alpha(left_oval)
+
+    # 오른쪽 타원 (반투명)
+    right_oval = slide.shapes.add_shape(MSO_SHAPE.OVAL, right_cx - oval_w // 2, cy - oval_h // 2, oval_w, oval_h)
+    right_oval.fill.solid(); right_oval.fill.fore_color.rgb = COLORS["SEM_GREEN_BG"]
+    right_oval.line.color.rgb = COLORS["SEM_GREEN"]; right_oval.line.width = Pt(2.5)
+    _set_alpha(right_oval)
+
+    # 루프 라벨 (각 타원 상단 내부)
+    label_w = Inches(2.0); label_h = Inches(0.4)
+    if left_label:
+        ll_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left_cx - int(label_w) // 2, cy - oval_h // 2 + Inches(0.12), int(label_w), int(label_h))
+        ll_shp.fill.solid(); ll_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; ll_shp.line.color.rgb = COLORS["PRIMARY"]
+        tf = ll_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = left_label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(12); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+    if right_label:
+        rl_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, right_cx - int(label_w) // 2, cy - oval_h // 2 + Inches(0.12), int(label_w), int(label_h))
+        rl_shp.fill.solid(); rl_shp.fill.fore_color.rgb = COLORS["SEM_GREEN"]; rl_shp.line.color.rgb = COLORS["SEM_GREEN"]
+        tf = rl_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = right_label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(12); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+    # 중앙 교차 라벨
+    if center_label:
+        c_w = Inches(1.3); c_h = Inches(0.55)
+        c_shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, cx - int(c_w) // 2, cy - int(c_h) // 2, int(c_w), int(c_h))
+        c_shp.fill.solid(); c_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; c_shp.line.color.rgb = COLORS["BG_WHITE"]; c_shp.line.width = Pt(2.5)
+        tf = c_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = center_label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(12); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+    # 항목을 각 타원의 바깥 호를 따라 배치 (angle-based)
+    item_w = Inches(1.5); item_h = Inches(0.45)
+    semi_a = oval_w // 2 - int(item_w) // 2 - Inches(0.12)
+    semi_b = oval_h // 2 - int(item_h) // 2 - Inches(0.12)
+
+    # 왼쪽 항목: 바깥쪽 호 (top → upper-left → lower-left → bottom)
+    left_angles = [-math.pi / 2, -5 * math.pi / 6, 5 * math.pi / 6, math.pi / 2]
+    n_left = min(len(left_items), 4)
+    for i in range(n_left):
+        angle = left_angles[i]
+        ix = left_cx + int(semi_a * math.cos(angle)) - int(item_w) // 2
+        iy = cy + int(semi_b * math.sin(angle)) - int(item_h) // 2
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, ix, iy, int(item_w), int(item_h))
+        shp.fill.solid(); shp.fill.fore_color.rgb = COLORS["BG_WHITE"]
+        shp.line.color.rgb = COLORS["PRIMARY"]; shp.line.width = Pt(1.5)
+        tf = shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        label = left_items[i].get('label', '') if isinstance(left_items[i], dict) else str(left_items[i])
+        p = tf.paragraphs[0]; p.text = label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(11); p.font.color.rgb = COLORS["PRIMARY"]; p.alignment = PP_ALIGN.CENTER
+
+    # 오른쪽 항목: 바깥쪽 호 (top → upper-right → lower-right → bottom)
+    right_angles = [-math.pi / 2, -math.pi / 6, math.pi / 6, math.pi / 2]
+    n_right = min(len(right_items), 4)
+    for i in range(n_right):
+        angle = right_angles[i]
+        ix = right_cx + int(semi_a * math.cos(angle)) - int(item_w) // 2
+        iy = cy + int(semi_b * math.sin(angle)) - int(item_h) // 2
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, ix, iy, int(item_w), int(item_h))
+        shp.fill.solid(); shp.fill.fore_color.rgb = COLORS["BG_WHITE"]
+        shp.line.color.rgb = COLORS["SEM_GREEN"]; shp.line.width = Pt(1.5)
+        tf = shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        label = right_items[i].get('label', '') if isinstance(right_items[i], dict) else str(right_items[i])
+        p = tf.paragraphs[0]; p.text = label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(11); p.font.color.rgb = COLORS["SEM_GREEN"]; p.alignment = PP_ALIGN.CENTER
+
+    # 흐름 방향 화살표 (각 타원 사이 연결)
+    arr_sz = Inches(0.22)
+    # 왼쪽→오른쪽 (하단 교차): Test → Release
+    arr1 = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, cx + Inches(0.15), cy + int(c_h) // 2 + Inches(0.05), int(arr_sz), int(arr_sz))
+    arr1.rotation = 90; arr1.fill.solid(); arr1.fill.fore_color.rgb = COLORS["PRIMARY"]; arr1.line.fill.background()
+    # 오른쪽→왼쪽 (상단 교차): Monitor → Plan
+    arr2 = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, cx - Inches(0.15) - int(arr_sz), cy - int(c_h) // 2 - Inches(0.05) - int(arr_sz), int(arr_sz), int(arr_sz))
+    arr2.rotation = 270; arr2.fill.solid(); arr2.fill.fore_color.rgb = COLORS["SEM_GREEN"]; arr2.line.fill.background()
+
+
+# 36. Speedometer Gauge (스피도미터 게이지)
+def render_speedometer_gauge(slide, data):
+    import math
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    value = content.get('value', 50); segments = content.get('segments', [])
+    title = content.get('title', '')
+    if not segments: return
+    n = len(segments)
+
+    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh * 0.6)
+    radius = min(int(bw * 0.38), int(bh * 0.5))
+
+    # 세그먼트 (반원 배치)
+    seg_angle = math.pi / n
+    seg_w = Inches(1.3); seg_h = Inches(0.5)
+    default_colors_g = ['green', 'blue', 'orange', 'red', 'primary', 'gray']
+    for i, seg in enumerate(segments):
+        angle = math.pi + seg_angle * i + seg_angle / 2
+        sx = cx + int(radius * math.cos(angle)) - int(seg_w) // 2
+        sy = cy + int(radius * math.sin(angle)) - int(seg_h) // 2
+        color_key = seg.get('color', default_colors_g[i % len(default_colors_g)])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, sx, sy, int(seg_w), int(seg_h))
+        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c; shp.line.color.rgb = line_c; shp.line.width = Pt(1.5)
+        tf = shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = seg.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(10); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER
+
+    # 중앙 값 표시
+    val_size = Inches(1.8)
+    val_shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, cx - int(val_size) // 2, cy - int(val_size) // 2, int(val_size), int(val_size))
+    val_shp.fill.solid(); val_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; val_shp.line.color.rgb = COLORS["PRIMARY"]
+    tf = val_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]; p.text = str(value); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+    p.font.size = Pt(28); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+    if title:
+        p2 = tf.add_paragraph(); p2.text = title; p2.font.name = FONTS["BODY_TEXT"]
+        p2.font.size = Pt(11); p2.font.color.rgb = COLORS["BG_WHITE"]; p2.alignment = PP_ALIGN.CENTER
+
+    # 바늘 (value 0~100 → 반원 각도)
+    needle_angle = math.pi + (math.pi * min(max(value, 0), 100) / 100)
+    needle_len = int(radius * 0.6)
+    nx = cx + int(needle_len * math.cos(needle_angle))
+    ny = cy + int(needle_len * math.sin(needle_angle))
+    needle = slide.shapes.add_connector(1, cx, cy, nx, ny)
+    needle.line.color.rgb = COLORS["SEM_RED"]; needle.line.width = Pt(3.0)
+    mk_size = Inches(0.18)
+    mk = slide.shapes.add_shape(MSO_SHAPE.OVAL, nx - int(mk_size) // 2, ny - int(mk_size) // 2, int(mk_size), int(mk_size))
+    mk.fill.solid(); mk.fill.fore_color.rgb = COLORS["SEM_RED"]; mk.line.color.rgb = COLORS["SEM_RED"]
+
+
+# 37. Mind Map (마인드맵)
+def render_mind_map(slide, data):
+    import math
+    wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
+    bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
+    center = content.get('center', {}); branches = content.get('branches', [])
+    if not center: return
+
+    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
+    n = len(branches)
+
+    # 중앙 노드
+    center_w = Inches(2.2); center_h = Inches(1.0)
+    c_shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, cx - int(center_w) // 2, cy - int(center_h) // 2, int(center_w), int(center_h))
+    c_shp.fill.solid(); c_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; c_shp.line.color.rgb = COLORS["PRIMARY"]
+    tf = c_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    p = tf.paragraphs[0]; p.text = center.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+    p.font.size = Pt(16); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+    if not branches: return
+    # 와이드스크린 대응: 타원형 반경
+    radius_x = int(bw * 0.42); radius_y = int(bh * 0.38)
+    branch_w = Inches(1.6); branch_h = Inches(0.9)
+    default_colors = ['blue', 'green', 'orange', 'red', 'primary', 'gray']
+
+    for i, br in enumerate(branches):
+        angle = -math.pi / 2 + (2 * math.pi * i / n)
+        bx_pos = cx + int(radius_x * math.cos(angle)) - int(branch_w) // 2
+        by_pos = cy + int(radius_y * math.sin(angle)) - int(branch_h) // 2
+        color_key = br.get('color', default_colors[i % len(default_colors)])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+
+        # 연결선
+        edge_x = cx + int(Inches(1.1) * math.cos(angle))
+        edge_y = cy + int(Inches(0.5) * math.sin(angle))
+        conn = slide.shapes.add_connector(1, edge_x, edge_y, bx_pos + int(branch_w) // 2, by_pos + int(branch_h) // 2)
+        conn.line.color.rgb = line_c; conn.line.width = Pt(2.5)
+
+        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, bx_pos, by_pos, int(branch_w), int(branch_h))
+        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c; shp.line.color.rgb = line_c; shp.line.width = Pt(2.0)
+        tf = shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = Inches(0.08); tf.margin_right = Inches(0.08)
+        p = tf.paragraphs[0]; p.text = br.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(12); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(2)
+        for sub in br.get('sub_branches', [])[:2]:
+            p2 = tf.add_paragraph(); p2.text = f"· {sub}"; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(9); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.CENTER; p2.space_after = Pt(1)
 
 
 # ==========================================
@@ -1255,6 +1999,12 @@ def render_slide_content(slide, layout, data):
         "quote_highlight": render_quote_highlight, "pros_cons": render_pros_cons,
         "do_dont": render_do_dont, "split_text_code": render_split_text_code,
         "pyramid_hierarchy": render_pyramid_hierarchy, "cycle_loop": render_cycle_loop,
+        "venn_diagram": render_venn_diagram, "swot_matrix": render_swot_matrix,
+        "center_radial": render_center_radial, "funnel": render_funnel,
+        "zigzag_timeline": render_zigzag_timeline, "fishbone_cause_effect": render_fishbone_cause_effect,
+        "org_chart": render_org_chart, "temple_pillars": render_temple_pillars,
+        "infinity_loop": render_infinity_loop, "speedometer_gauge": render_speedometer_gauge,
+        "mind_map": render_mind_map,
     }
 
     func = renderers.get(layout)

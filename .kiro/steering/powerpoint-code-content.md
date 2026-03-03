@@ -1,7 +1,7 @@
 # PowerPoint Generation - Content Renderers Source Code
 
 **Part of**: [powerpoint-guide.md](./powerpoint-guide.md) 시스템 명세
-**File**: `powerpoint_content.py` — 27 layout renderers (24 unique + 3 aliases)
+**File**: `powerpoint_content.py` — 38 layout renderers (35 unique + 3 aliases)
 
 ---
 
@@ -217,8 +217,8 @@ def create_content_box(slide, x, y, w, h, title, body, style="gray", search_q=No
         icon_size = Inches(0.6)
         # 박스가 아이콘을 수용할 수 있을 때만 표시 (최소 높이 1.2", 너비 1.5")
         if h >= Inches(1.2) and w >= Inches(1.5):
-            icon_x = x + w - icon_size - Inches(0.1)
-            icon_y_pos = y + Inches(0.1)
+            icon_x = x + w - icon_size - Inches(0.25)
+            icon_y_pos = y + Inches(0.2)
             draw_icon_search(slide, icon_x, icon_y_pos, icon_size, search_q)
 
 def create_terminal_box(slide, x, y, w, h, title, body, compact=False):
@@ -276,15 +276,18 @@ def create_terminal_box(slide, x, y, w, h, title, body, compact=False):
     tf.margin_top = Inches(0.2)
     tf.margin_bottom = Inches(0.2)
 
-    # Compact 모드에서는 폰트 크기를 줄임
-    if compact:
-        font_size = Pt(11)
-        line_spacing = Pt(4)
-    else:
-        font_size = Pt(14)
-        line_spacing = Pt(6)
-
     lines = str(body).split('\n')
+    n_lines = len(lines)
+
+    # 라인 수에 따라 동적 폰트 크기 조절
+    if compact or n_lines > 20:
+        font_size = Pt(9); line_spacing = Pt(2)
+    elif n_lines > 15:
+        font_size = Pt(10); line_spacing = Pt(3)
+    elif n_lines > 10:
+        font_size = Pt(11); line_spacing = Pt(4)
+    else:
+        font_size = Pt(14); line_spacing = Pt(6)
     for i, line in enumerate(lines):
         if i == 0:
             p = tf.paragraphs[0]
@@ -496,10 +499,17 @@ def render_challenge_solution(slide, data):
     # challenge와 solution은 wrapper 레벨에 있음
     content = wrapper
 
-    # 화살표를 위한 충분한 간격 확보
+    # challenge/solution은 dict 또는 string일 수 있음
+    ch = content.get('challenge', {})
+    sol = content.get('solution', {})
+    ch_title = ch.get('title', 'CHALLENGE') if isinstance(ch, dict) else 'CHALLENGE'
+    ch_body = ch.get('body', '') if isinstance(ch, dict) else str(ch)
+    sol_title = sol.get('title', 'SOLUTION') if isinstance(sol, dict) else 'SOLUTION'
+    sol_body = sol.get('body', '') if isinstance(sol, dict) else str(sol)
+
     gap = Inches(0.6); w_half = (bw - gap) / 2
-    create_content_box(slide, bx, by, w_half, bh, "CHALLENGE", content.get('challenge',''), "gray")
-    create_content_box(slide, bx+w_half+gap, by, w_half, bh, "SOLUTION", content.get('solution',''), "white")
+    create_content_box(slide, bx, by, w_half, bh, ch_title, ch_body, "gray")
+    create_content_box(slide, bx+w_half+gap, by, w_half, bh, sol_title, sol_body, "white")
     arrow = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, bx+w_half-Inches(0.5)+(gap/2), by+(bh/2)-Inches(0.5), Inches(1.0), Inches(1.0))
     arrow.fill.solid()
     arrow.fill.fore_color.rgb = COLORS["PRIMARY"]
@@ -603,11 +613,11 @@ def render_process_arrow(slide, data):
         p = shp.text_frame.paragraphs[0]; p.text = step.get('title',''); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment=PP_ALIGN.CENTER; p.font.size=Pt(14); p.font.bold=True
         create_content_box(slide, x, by + Inches(1.0), w_step, bh - Inches(1.0), "", step.get('body',''), "white", step.get('search_q'), terminal=step.get('terminal', False))
 
-# 7-2. Phased Columns (단계별 컬럼 + 색상 그라데이션)
+# 7-2. Phased Columns (단계별 컬럼 + 의미 기반 색상)
 def render_phased_columns(slide, data):
-    """단계별 컬럼 레이아웃 (색상 그라데이션)
+    """단계별 컬럼 레이아웃 (의미 기반 색상)
 
-    N개 세로 컬럼 나란히 배치, 진한→연한 색상 그라데이션.
+    N개 세로 컬럼 나란히 배치, 의미 기반 고유 색상.
     각 컬럼: 색상 헤더 스트립 + 본문 내용 + 아이콘
 
     data.data.data.steps: [
@@ -629,16 +639,17 @@ def render_phased_columns(slide, data):
     col_w = (bw - gap * (n - 1)) / n
     header_h = Inches(0.7)
 
-    # 색상 그라데이션: 진한 네이비 → 연한 블루 (7단계 팔레트)
-    _gradient = [
-        (0, 27, 94), (0, 45, 143), (0, 67, 218),
-        (59, 122, 237), (123, 167, 247), (160, 195, 250), (190, 215, 252),
+    # 의미 기반 색상 팔레트 (각 단계별 고유 색상)
+    _phase_colors = [
+        COLORS["PRIMARY"],          # 파랑
+        RGBColor(4, 120, 87),       # 초록
+        RGBColor(194, 65, 12),      # 주황
+        RGBColor(185, 28, 28),      # 빨강
+        RGBColor(30, 58, 138),      # 진파랑
+        RGBColor(120, 53, 15),      # 갈색
+        RGBColor(88, 28, 135),      # 보라
     ]
-    if n > 1:
-        indices = [int(i * (len(_gradient) - 1) / (n - 1)) for i in range(n)]
-    else:
-        indices = [2]
-    colors = [RGBColor(*_gradient[idx]) for idx in indices]
+    colors = [_phase_colors[i % len(_phase_colors)] for i in range(n)]
 
     for i, step in enumerate(steps):
         x = bx + i * (col_w + gap)
@@ -708,16 +719,38 @@ def render_architecture_wide(slide, data):
     bx, by, bw, bh = calculate_dynamic_rect(y_start)
     content = wrapper.get('data', {})
 
-    h_diag = bh * 0.6
-    ph = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, bx, by, bw, h_diag)
-    ph.fill.solid(); ph.fill.fore_color.rgb = RGBColor(230,230,230); ph.text_frame.text = "Diagram Area"
-    ph.text_frame.paragraphs[0].font.color.rgb = COLORS["BLACK"]
+    h_diag = bh * 0.45
+    # 다이어그램 영역: 로컬 이미지 또는 아이콘+화살표 폴백
+    diagram_src = content.get('diagram_path', '')
+    diag_loaded = False
+    if diagram_src and os.path.exists(diagram_src):
+        try:
+            slide.shapes.add_picture(diagram_src, bx, by, width=bw, height=h_diag)
+            diag_loaded = True
+        except: pass
+    if not diag_loaded:
+        # 아이콘+화살표 폴백: 컬럼 아이콘들을 가로로 배치
+        cols_data = [content.get(f'col{i+1}', {}) for i in range(3)]
+        icon_keys = [c.get('search_q', '') for c in cols_data if isinstance(c, dict)]
+        if icon_keys:
+            icon_n = len(icon_keys); icon_size = Inches(1.0)
+            icon_gap = (bw - icon_size * icon_n) / max(icon_n + 1, 1)
+            for idx, sq in enumerate(icon_keys):
+                ix = bx + icon_gap * (idx + 1) + icon_size * idx
+                iy = by + (h_diag - icon_size) / 2
+                draw_icon_search(slide, ix, iy, icon_size, sq)
+                if idx < icon_n - 1:
+                    arrow = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, ix + icon_size + Inches(0.1), by + h_diag / 2 - Inches(0.15), icon_gap - Inches(0.2), Inches(0.3))
+                    arrow.fill.solid(); arrow.fill.fore_color.rgb = COLORS["PRIMARY"]; arrow.line.color.rgb = COLORS["PRIMARY"]
+        else:
+            ph = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, bx, by, bw, h_diag)
+            ph.fill.solid(); ph.fill.fore_color.rgb = RGBColor(230,230,230); ph.text_frame.text = "Diagram Area"
 
     y_desc = by + h_diag + Inches(0.2); h_desc = bh - h_diag - Inches(0.2); gap = Inches(0.15); w_col = (bw - (gap*2)) / 3
     for i, k in enumerate(['col1', 'col2', 'col3']):
         if k in content:
             item = content[k]
-            create_content_box(slide, bx + i*(w_col+gap), y_desc, w_col, h_desc, item.get('title',''), item.get('body',''), "white", item.get('search_q'))
+            create_content_box(slide, bx + i*(w_col+gap), y_desc, w_col, h_desc, item.get('title',''), item.get('body',''), "white", item.get('search_q'), compact=True)
 
 # 9. Image Left
 def render_image_left(slide, data):
@@ -730,15 +763,27 @@ def render_image_left(slide, data):
     gap = Inches(0.25)
     w_half = (bw - gap) / 2
 
-    # 좌측: 이미지
+    # 좌측: 이미지 (image_path 또는 search_q 폴더 체인)
     image_path = content.get('image_path')
+    img_loaded = False
     if image_path and os.path.exists(image_path):
         try:
             slide.shapes.add_picture(image_path, bx, by, width=w_half, height=bh)
+            img_loaded = True
         except Exception as e:
             print(f"⚠️ 이미지 로드 실패: {str(e)[:50]}")
-    else:
-        # 이미지 없으면 회색 박스
+    if not img_loaded:
+        sq = content.get('search_q', '')
+        if sq:
+            for folder in ['architecture', 'screenshots', 'icons']:
+                candidate = os.path.join(folder, sq.replace(' ', '_') + '.png')
+                if os.path.exists(candidate):
+                    try:
+                        slide.shapes.add_picture(candidate, bx, by, width=w_half, height=bh)
+                        img_loaded = True
+                    except: pass
+                    break
+    if not img_loaded:
         placeholder = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, bx, by, w_half, bh)
         placeholder.fill.solid()
         placeholder.fill.fore_color.rgb = COLORS["BG_BOX"]
@@ -876,32 +921,25 @@ def render_detail_image(slide, data):
             except Exception as e:
                 print(f"   ⚠️ [아키텍처 다이어그램 로드 실패] '{search_q}': {str(e)[:50]}")
 
-        # 2. icons 폴더 확인 (architecture에 없으면)
+        # 2. icons 폴더 확인 (architecture에 없으면) — 아이콘은 적절한 크기로 + 라벨
         if not img_loaded:
             img_path = os.path.join("icons", img_filename)
             if os.path.exists(img_path):
                 try:
-                    try:
-                        from PIL import Image
-                        with Image.open(img_path) as img:
-                            orig_width, orig_height = img.size
-                        aspect_ratio = orig_width / orig_height
-                        available_width = bw
-                        available_height = img_h
-                        if available_width / aspect_ratio <= available_height:
-                            final_width = available_width
-                            final_height = available_width / aspect_ratio
-                        else:
-                            final_height = available_height
-                            final_width = available_height * aspect_ratio
-                        centered_x = bx + (available_width - final_width) / 2
-                        centered_y = img_y + (available_height - final_height) / 2
-                        slide.shapes.add_picture(img_path, int(centered_x), int(centered_y),
-                                                width=int(final_width), height=int(final_height))
-                        print(f"   ✅ [로컬 다이어그램 추가됨 - 중앙 정렬] '{search_q}' → {img_path}")
-                    except ImportError:
-                        slide.shapes.add_picture(img_path, bx, img_y, width=bw, height=img_h)
-                        print(f"   ✅ [로컬 다이어그램 추가됨] '{search_q}' → {img_path}")
+                    icon_max = min(Inches(2.5), img_h * 0.6)
+                    icon_cx = bx + (bw - icon_max) / 2
+                    icon_cy = img_y + (img_h - icon_max - Inches(0.4)) / 2
+                    slide.shapes.add_picture(img_path, int(icon_cx), int(icon_cy),
+                                            width=int(icon_max), height=int(icon_max))
+                    # 아이콘 아래 라벨 추가
+                    label_y = int(icon_cy) + int(icon_max) + Inches(0.1)
+                    label_tb = slide.shapes.add_textbox(bx, label_y, bw, Inches(0.35))
+                    label_tf = label_tb.text_frame; label_tf.word_wrap = True
+                    label_p = label_tf.paragraphs[0]
+                    label_p.text = search_q.replace('_', ' ').title()
+                    label_p.font.name = FONTS["BODY_TEXT"]; label_p.font.size = Pt(12)
+                    label_p.font.color.rgb = COLORS["DARK_GRAY"]; label_p.alignment = PP_ALIGN.CENTER
+                    print(f"   ✅ [로컬 다이어그램 추가됨 - 중앙 정렬] '{search_q}' → {img_path}")
                     img_loaded = True
                 except Exception as e:
                     print(f"   ⚠️ [로컬 다이어그램 로드 실패] '{search_q}': {str(e)[:50]}")
@@ -943,7 +981,7 @@ def render_comparison_table(slide, data):
         tf.clear()
         tf.vertical_anchor = MSO_ANCHOR.MIDDLE
         p = tf.paragraphs[0]
-        p.text = col.get('title', '')
+        p.text = col.get('title', '') if isinstance(col, dict) else str(col)
         p.font.name = FONTS["BODY_TITLE"]
         p.font.bold = True
         p.font.size = Pt(16)
@@ -956,7 +994,7 @@ def render_comparison_table(slide, data):
 
     for row_idx, row in enumerate(rows):
         row_y = by + header_h + Inches(0.2) + (row_idx * row_h)
-        values = row.get('values', ['', '', ''])
+        values = row if isinstance(row, list) else row.get('values', ['', '', ''])
 
         for col_idx, value in enumerate(values):
             x = bx + col_idx * (w_col + gap)
