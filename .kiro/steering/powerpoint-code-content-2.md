@@ -1252,16 +1252,7 @@ def render_cycle_loop(slide, data):
 
 # 27. Venn Diagram (벤 다이어그램)
 def render_venn_diagram(slide, data):
-    """3개 겹치는 원 + 교집합 영역으로 관계/공통요소 표현
-
-    data.data.data:
-        circles: [
-            {"label": "기술", "desc": "클라우드, DevOps", "color": "blue"},
-            {"label": "비즈니스", "desc": "ROI, 효율성", "color": "green"},
-            {"label": "인력", "desc": "역량, 조직문화", "color": "orange"}
-        ]
-        center_label: "디지털 전환"  (교집합 라벨)
-    """
+    """좌측 3원 벤 다이어그램 + 우측 설명 카드 레이아웃"""
     import math
     wrapper = data.get('data', {}); y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
     bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
@@ -1270,71 +1261,96 @@ def render_venn_diagram(slide, data):
     center_label = content.get('center_label', '')
     n = min(len(circles), 3)
 
-    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
-    side = min(int(bw), int(bh))
-    circle_d = int(side * 0.55)  # 원 지름
-    offset = int(side * 0.15)     # 원 중심 간 오프셋
+    # 좌측 55% = 원 영역, 우측 45% = 설명 카드
+    left_w = int(bw * 0.55)
+    right_x = int(bx) + left_w + Inches(0.25)
+    right_w = int(bw) - left_w - Inches(0.25)
+    vcx = int(bx) + left_w // 2; vcy = int(by) + int(bh) // 2
 
-    circle_colors = [
-        ('blue', RGBColor(0, 67, 218)),
-        ('green', RGBColor(4, 120, 87)),
-        ('orange', RGBColor(194, 65, 12)),
+    # 파스텔 fill + 진한 border/text 색상
+    circle_styles = [
+        (RGBColor(219, 234, 254), RGBColor(30, 64, 175)),    # blue
+        (RGBColor(254, 226, 226), RGBColor(185, 28, 28)),    # red
+        (RGBColor(220, 252, 231), RGBColor(22, 101, 52)),    # green
     ]
+    _venn_color_map = {'blue': 0, 'green': 2, 'orange': 1, 'red': 1}
 
-    # 원 3개 배치 (정삼각형 꼭짓점)
+    side = min(left_w, int(bh))
+    circle_d = int(side * 0.55)
+    offset = int(circle_d * 0.28)
+
+    from pptx.oxml.ns import qn as _qn
+    # 원 3개 배치 (정삼각형 꼭짓점) + 내부 라벨
     for i in range(n):
         angle = -math.pi / 2 + (2 * math.pi * i / n)
-        ox = cx + int(offset * math.cos(angle)) - circle_d // 2
-        oy = cy + int(offset * math.sin(angle)) - circle_d // 2
+        ccx = vcx + int(offset * math.cos(angle)); ccy = vcy + int(offset * math.sin(angle))
+        ox = ccx - circle_d // 2; oy = ccy - circle_d // 2
 
-        color_key = circles[i].get('color', circle_colors[i % 3][0])
-        _, line_c, _ = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
-        fill_c = circle_colors[i % 3][1]
+        ci = _venn_color_map.get(circles[i].get('color', ''), i % 3)
+        fill_c, border_c = circle_styles[ci]
 
         shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, ox, oy, circle_d, circle_d)
         shp.fill.solid(); shp.fill.fore_color.rgb = fill_c
-        shp.fill.fore_color.brightness = 0.0
-        # 반투명 효과 (alpha) — XML 조작이므로 try/except 필수
         try:
-            from pptx.oxml.ns import qn
-            solid_fill = shp.fill._fill.find(qn('a:solidFill'))
-            if solid_fill is not None:
-                srgb = solid_fill.find(qn('a:srgbClr'))
-                if srgb is not None:
-                    alpha_el = srgb.makeelement(qn('a:alpha'), {})
-                    alpha_el.set('val', '35000')  # 35% 불투명도
-                    srgb.append(alpha_el)
-        except Exception:
-            pass
-        shp.line.color.rgb = fill_c; shp.line.width = Pt(2.5)
+            sf = shp.fill._fill.find(_qn('a:solidFill'))
+            if sf is not None:
+                sc = sf.find(_qn('a:srgbClr'))
+                if sc is not None:
+                    a_el = sc.makeelement(_qn('a:alpha'), {}); a_el.set('val', '45000'); sc.append(a_el)
+        except Exception: pass
+        shp.line.color.rgb = border_c; shp.line.width = Pt(2.0)
 
-    # 원 라벨 (원 외곽에 배치)
-    label_offset = int(side * 0.42)
-    for i in range(n):
-        angle = -math.pi / 2 + (2 * math.pi * i / n)
-        lx = cx + int(label_offset * math.cos(angle))
-        ly = cy + int(label_offset * math.sin(angle))
-
-        label_w = Inches(2.2); label_h = Inches(0.9)
-        tb = slide.shapes.add_textbox(lx - int(label_w) // 2, ly - int(label_h) // 2, int(label_w), int(label_h))
-        tf = tb.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        p = tf.paragraphs[0]; p.text = circles[i].get('label', ''); p.font.name = FONTS["BODY_TITLE"]
-        p.font.bold = True; p.font.size = Pt(16); p.font.color.rgb = circle_colors[i % 3][1]; p.alignment = PP_ALIGN.CENTER
-        desc = circles[i].get('desc', '')
-        if desc:
-            p2 = tf.add_paragraph(); p2.text = desc; p2.font.name = FONTS["BODY_TEXT"]
-            p2.font.size = Pt(11); p2.font.color.rgb = COLORS["GRAY"]; p2.alignment = PP_ALIGN.CENTER
+        # 원 내부 라벨 (중심에서 바깥쪽으로 오프셋)
+        label = circles[i].get('label', '')
+        lbl_r = int(circle_d * 0.18)
+        lx = ccx + int(lbl_r * math.cos(angle)); ly = ccy + int(lbl_r * math.sin(angle))
+        lbl_w = Inches(1.8); lbl_h = Inches(0.45)
+        lbl_shp = slide.shapes.add_textbox(lx - int(lbl_w) // 2, ly - int(lbl_h) // 2, int(lbl_w), int(lbl_h))
+        tf = lbl_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE; tf.word_wrap = True
+        p = tf.paragraphs[0]; p.text = label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(12); p.font.color.rgb = border_c; p.alignment = PP_ALIGN.CENTER
 
     # 중앙 교집합 라벨
     if center_label:
-        cl_w = Inches(1.8); cl_h = Inches(0.8)
-        center_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, cx - int(cl_w) // 2, cy - int(cl_h) // 2, int(cl_w), int(cl_h))
-        center_box.fill.solid(); center_box.fill.fore_color.rgb = COLORS["PRIMARY"]
-        center_box.line.color.rgb = COLORS["PRIMARY"]; center_box.line.width = Pt(2.0)
-        center_box.shadow.inherit = False
-        tf = center_box.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        p = tf.paragraphs[0]; p.text = center_label; p.font.name = FONTS["BODY_TITLE"]
-        p.font.bold = True; p.font.size = Pt(14); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+        cl_w = Inches(1.5); cl_h = Inches(0.55)
+        c_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, vcx - int(cl_w) // 2, vcy - int(cl_h) // 2, int(cl_w), int(cl_h))
+        c_shp.fill.solid(); c_shp.fill.fore_color.rgb = COLORS["PRIMARY"]
+        c_shp.line.color.rgb = COLORS["PRIMARY"]; c_shp.line.width = Pt(2.0)
+        tf = c_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p = tf.paragraphs[0]; p.text = center_label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(13); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+    # 우측 설명 카드 (컬러 왼쪽 액센트 바 + 흰색 카드)
+    card_gap = Inches(0.15)
+    card_h = (int(bh) - int(card_gap) * (n - 1)) // n
+    bar_w = Inches(0.06)
+    for i in range(n):
+        ci = _venn_color_map.get(circles[i].get('color', ''), i % 3)
+        _, border_c = circle_styles[ci]
+        card_y = int(by) + (card_h + int(card_gap)) * i
+
+        # 컬러 액센트 바 (좌측)
+        bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, right_x, card_y, int(bar_w), card_h)
+        bar.fill.solid(); bar.fill.fore_color.rgb = border_c; bar.line.fill.background()
+
+        # 카드 본체
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                       right_x + int(bar_w), card_y, right_w - int(bar_w), card_h)
+        card.fill.solid(); card.fill.fore_color.rgb = COLORS["BG_WHITE"]
+        card.line.color.rgb = RGBColor(229, 231, 235); card.line.width = Pt(1.0)
+        tf = card.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = Inches(0.2); tf.margin_right = Inches(0.12)
+        tf.margin_top = Inches(0.08); tf.margin_bottom = Inches(0.08)
+
+        p = tf.paragraphs[0]; p.text = circles[i].get('label', ''); p.font.name = FONTS["BODY_TITLE"]
+        p.font.bold = True; p.font.size = Pt(13); p.font.color.rgb = border_c
+        p.alignment = PP_ALIGN.LEFT; p.space_after = Pt(4)
+        desc = circles[i].get('desc', '')
+        if desc:
+            for line in desc.split('\n'):
+                p2 = tf.add_paragraph(); p2.text = f"• {line}"; p2.font.name = FONTS["BODY_TEXT"]
+                p2.font.size = Pt(10); p2.font.color.rgb = COLORS["GRAY"]
+                p2.alignment = PP_ALIGN.LEFT; p2.space_after = Pt(1)
 
 
 # 28. SWOT Matrix (SWOT 분석 매트릭스)
@@ -1436,62 +1452,66 @@ def render_center_radial(slide, data):
     if not directions: return
 
     cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
-    side = min(int(bw), int(bh))
-    rx_scale = int(bw) / side if side > 0 else 1.0  # 와이드스크린 가로 확장 비율
 
-    # 중앙 원
-    center_d = int(side * 0.3)
-    center_shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, cx - center_d // 2, cy - center_d // 2, center_d, center_d)
+    # 중앙 노드 (ROUNDED_RECTANGLE — OVAL은 내접 텍스트영역이 좁아 단어 잘림 발생)
+    center_w = int(int(bh) * 0.42); center_h = int(int(bh) * 0.30)
+    center_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, cx - center_w // 2, cy - center_h // 2, center_w, center_h)
     center_shp.fill.solid(); center_shp.fill.fore_color.rgb = COLORS["PRIMARY"]
     center_shp.line.color.rgb = COLORS["PRIMARY"]; center_shp.line.width = Pt(3.0)
     tf = center_shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    tf.margin_left = Inches(0.1); tf.margin_right = Inches(0.1)
-    p = tf.paragraphs[0]; p.text = center.get('label', ''); p.font.name = FONTS["BODY_TITLE"]
-    p.font.bold = True; p.font.size = Pt(16); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+    tf.margin_left = Inches(0.15); tf.margin_right = Inches(0.15)
+    tf.margin_top = Inches(0.06); tf.margin_bottom = Inches(0.06)
+    c_label = center.get('label', '')
+    p = tf.paragraphs[0]; p.text = c_label; p.font.name = FONTS["BODY_TITLE"]
+    c_fs = Pt(11) if len(c_label) > 16 else Pt(13) if len(c_label) > 10 else Pt(15)
+    p.font.bold = True; p.font.size = c_fs; p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
     c_desc = center.get('desc', '')
     if c_desc:
         p2 = tf.add_paragraph(); p2.text = c_desc; p2.font.name = FONTS["BODY_TEXT"]
-        p2.font.size = Pt(10); p2.font.color.rgb = RGBColor(200, 215, 255); p2.alignment = PP_ALIGN.CENTER
+        p2.font.size = Pt(9); p2.font.color.rgb = RGBColor(200, 215, 255); p2.alignment = PP_ALIGN.CENTER
 
-    # 4방향: 우상, 우하, 좌하, 좌상 (대각선)
+    # 4방향: 상, 우, 하, 좌 — 슬라이드 경계 보장 + 균일 간격
     n = min(len(directions), 4)
-    angles = [-math.pi / 4, math.pi / 4, 3 * math.pi / 4, -3 * math.pi / 4]  # 우상, 우하, 좌하, 좌상
-    arrow_len = Inches(0.5)
     default_colors_r = ['blue', 'green', 'orange', 'red']
+    card_w = Inches(2.5); card_h = Inches(1.1)
+    cr_v = center_h // 2; cr_h = center_w // 2  # 상하/좌우 반경 다름
+    # 동적 간격: 상하 가용 공간 기준 + 좌우는 조금 더 길게
+    avail_v = int(bh) // 2 - cr_v - int(card_h)
+    v_gap = max(Inches(0.15), avail_v - Inches(0.08))
+    h_gap = v_gap + Inches(0.4)
+
+    card_positions = [
+        (cx, cy - cr_v - int(v_gap) - int(card_h) // 2, 'top'),
+        (cx + cr_h + int(h_gap) + int(card_w) // 2, cy, 'right'),
+        (cx, cy + cr_v + int(v_gap) + int(card_h) // 2, 'bottom'),
+        (cx - cr_h - int(h_gap) - int(card_w) // 2, cy, 'left'),
+    ]
 
     for i in range(n):
-        angle = angles[i]
         color_key = directions[i].get('color', default_colors_r[i])
         fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
 
-        # 화살표 시작/끝 좌표
-        arrow_start = int(center_d * 0.52)  # 원 가장자리
-        arrow_end = int(side * 0.32)          # 코너 박스까지 (가로 확장 적용)
-        ax1 = cx + int(arrow_start * rx_scale * math.cos(angle))
-        ay1 = cy + int(arrow_start * math.sin(angle))
-        ax2 = cx + int(arrow_end * rx_scale * math.cos(angle))
-        ay2 = cy + int(arrow_end * math.sin(angle))
-
-        # 연결선 (직선)
-        connector = slide.shapes.add_connector(1, ax1, ay1, ax2, ay2)  # 1 = straight
-        connector.line.color.rgb = line_c; connector.line.width = Pt(2.5)
-
-        # 화살표 끝 포인트 (삼각형)
-        arrow_size = Inches(0.25)
-        arrow_x = ax2 - int(arrow_size) // 2; arrow_y = ay2 - int(arrow_size) // 2
-        arr_shp = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, arrow_x, arrow_y, int(arrow_size), int(arrow_size))
-        arr_shp.fill.solid(); arr_shp.fill.fore_color.rgb = line_c; arr_shp.line.color.rgb = line_c
-        # 회전: 방향에 따라
-        rotation_deg = math.degrees(angle) + 90
-        arr_shp.rotation = rotation_deg
-
-        # 코너 카드
-        card_w = Inches(2.2); card_h = Inches(1.3)
-        card_offset = int(side * 0.38)
-        card_cx = cx + int(card_offset * rx_scale * math.cos(angle))
-        card_cy = cy + int(card_offset * math.sin(angle))
+        card_cx, card_cy, direction = card_positions[i]
         card_x = card_cx - int(card_w) // 2; card_y = card_cy - int(card_h) // 2
 
+        # 연결선 (중앙 노드 테두리 → 카드 테두리)
+        if direction == 'top':
+            lx1, ly1 = cx, cy - cr_v
+            lx2, ly2 = cx, card_cy + int(card_h) // 2
+        elif direction == 'bottom':
+            lx1, ly1 = cx, cy + cr_v
+            lx2, ly2 = cx, card_cy - int(card_h) // 2
+        elif direction == 'right':
+            lx1, ly1 = cx + cr_h, cy
+            lx2, ly2 = card_cx - int(card_w) // 2, cy
+        else:  # left
+            lx1, ly1 = cx - cr_h, cy
+            lx2, ly2 = card_cx + int(card_w) // 2, cy
+
+        connector = slide.shapes.add_connector(1, lx1, ly1, lx2, ly2)
+        connector.line.color.rgb = line_c; connector.line.width = Pt(2.5)
+
+        # 카드
         card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, card_x, card_y, int(card_w), int(card_h))
         card.fill.solid(); card.fill.fore_color.rgb = fill_c
         card.line.color.rgb = line_c; card.line.width = Pt(2.0)
@@ -1621,7 +1641,7 @@ def render_fishbone_cause_effect(slide, data):
     p = tf.paragraphs[0]; p.text = effect; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True; p.font.size = Pt(14); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
 
     usable_w = spine_x2 - spine_x1 - Inches(0.3); spacing = int(usable_w) / max(n, 1)
-    branch_h = int(bh * 0.25); default_colors = ['blue', 'green', 'orange', 'red', 'primary', 'gray']
+    branch_h = int(bh * 0.18); default_colors = ['blue', 'green', 'orange', 'red', 'primary', 'gray']
 
     for i, cat in enumerate(categories):
         is_top = (i % 2 == 0)
@@ -1807,16 +1827,18 @@ def render_infinity_loop(slide, data):
     right_oval.line.color.rgb = COLORS["SEM_GREEN"]; right_oval.line.width = Pt(2.5)
     _set_alpha(right_oval)
 
-    # 루프 라벨 (각 타원 상단 내부)
-    label_w = Inches(2.0); label_h = Inches(0.4)
+    # 루프 라벨 (각 타원 바로 위에 배치 — 내부 항목과 겹침 방지)
+    label_w = Inches(2.0); label_h = Inches(0.38)
     if left_label:
-        ll_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left_cx - int(label_w) // 2, cy - oval_h // 2 + Inches(0.12), int(label_w), int(label_h))
+        ll_y = cy - oval_h // 2 - int(label_h) - Inches(0.03)
+        ll_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left_cx - int(label_w) // 2, ll_y, int(label_w), int(label_h))
         ll_shp.fill.solid(); ll_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; ll_shp.line.color.rgb = COLORS["PRIMARY"]
         tf = ll_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
         p = tf.paragraphs[0]; p.text = left_label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
         p.font.size = Pt(12); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
     if right_label:
-        rl_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, right_cx - int(label_w) // 2, cy - oval_h // 2 + Inches(0.12), int(label_w), int(label_h))
+        rl_y = cy - oval_h // 2 - int(label_h) - Inches(0.03)
+        rl_shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, right_cx - int(label_w) // 2, rl_y, int(label_w), int(label_h))
         rl_shp.fill.solid(); rl_shp.fill.fore_color.rgb = COLORS["SEM_GREEN"]; rl_shp.line.color.rgb = COLORS["SEM_GREEN"]
         tf = rl_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
         p = tf.paragraphs[0]; p.text = right_label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
@@ -1866,14 +1888,38 @@ def render_infinity_loop(slide, data):
         p = tf.paragraphs[0]; p.text = label; p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
         p.font.size = Pt(11); p.font.color.rgb = COLORS["SEM_GREEN"]; p.alignment = PP_ALIGN.CENTER
 
-    # 흐름 방향 화살표 (각 타원 사이 연결)
-    arr_sz = Inches(0.22)
-    # 왼쪽→오른쪽 (하단 교차): Test → Release
-    arr1 = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, cx + Inches(0.15), cy + int(c_h) // 2 + Inches(0.05), int(arr_sz), int(arr_sz))
-    arr1.rotation = 90; arr1.fill.solid(); arr1.fill.fore_color.rgb = COLORS["PRIMARY"]; arr1.line.fill.background()
-    # 오른쪽→왼쪽 (상단 교차): Monitor → Plan
-    arr2 = slide.shapes.add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, cx - Inches(0.15) - int(arr_sz), cy - int(c_h) // 2 - Inches(0.05) - int(arr_sz), int(arr_sz), int(arr_sz))
-    arr2.rotation = 270; arr2.fill.solid(); arr2.fill.fore_color.rgb = COLORS["SEM_GREEN"]; arr2.line.fill.background()
+    # 흐름 방향 화살표: 각 아이템 사이 + 교차 지점
+    def _add_flow_dot(fx, fy, rot, color):
+        """작은 원에 ➤ 방향 표시"""
+        ds = Inches(0.28)
+        d = slide.shapes.add_shape(MSO_SHAPE.OVAL, fx - int(ds) // 2, fy - int(ds) // 2, int(ds), int(ds))
+        d.fill.solid(); d.fill.fore_color.rgb = color; d.line.color.rgb = color
+        d.rotation = rot
+        tf_d = d.text_frame; tf_d.clear(); tf_d.vertical_anchor = MSO_ANCHOR.MIDDLE
+        pd = tf_d.paragraphs[0]; pd.text = "\u27A4"; pd.font.size = Pt(9); pd.font.color.rgb = COLORS["BG_WHITE"]; pd.alignment = PP_ALIGN.CENTER
+
+    # 왼쪽 루프 흐름 (반시계: top→upper-left→lower-left→bottom)
+    for j in range(n_left - 1):
+        a1 = left_angles[j]; a2 = left_angles[j + 1]
+        mid_a = (a1 + a2) / 2
+        mx = left_cx + int(semi_a * 0.75 * math.cos(mid_a))
+        my = cy + int(semi_b * 0.75 * math.sin(mid_a))
+        _add_flow_dot(mx, my, math.degrees(mid_a) + 90, COLORS["PRIMARY"])
+
+    # 오른쪽 루프 흐름 (시계: top→upper-right→lower-right→bottom)
+    for j in range(n_right - 1):
+        a1 = right_angles[j]; a2 = right_angles[j + 1]
+        mid_a = (a1 + a2) / 2
+        mx = right_cx + int(semi_a * 0.75 * math.cos(mid_a))
+        my = cy + int(semi_b * 0.75 * math.sin(mid_a))
+        _add_flow_dot(mx, my, math.degrees(mid_a) + 90, COLORS["SEM_GREEN"])
+
+    # 교차 화살표 (큰 쉐브론)
+    arr_w = Inches(0.55); arr_h = Inches(0.32)
+    a1_shp = slide.shapes.add_shape(MSO_SHAPE.CHEVRON, cx + Inches(0.08), cy + Inches(0.35), int(arr_w), int(arr_h))
+    a1_shp.fill.solid(); a1_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; a1_shp.line.fill.background()
+    a2_shp = slide.shapes.add_shape(MSO_SHAPE.CHEVRON, cx - Inches(0.08) - int(arr_w), cy - Inches(0.35) - int(arr_h), int(arr_w), int(arr_h))
+    a2_shp.rotation = 180; a2_shp.fill.solid(); a2_shp.fill.fore_color.rgb = COLORS["SEM_GREEN"]; a2_shp.line.fill.background()
 
 
 # 36. Speedometer Gauge (스피도미터 게이지)
@@ -1936,46 +1982,107 @@ def render_mind_map(slide, data):
     bx, by, bw, bh = calculate_dynamic_rect(y_start); content = wrapper.get('data', {})
     center = content.get('center', {}); branches = content.get('branches', [])
     if not center: return
-
-    cx = int(bx) + int(bw) // 2; cy = int(by) + int(bh) // 2
     n = len(branches)
-
-    # 중앙 노드
-    center_w = Inches(2.2); center_h = Inches(1.0)
-    c_shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, cx - int(center_w) // 2, cy - int(center_h) // 2, int(center_w), int(center_h))
-    c_shp.fill.solid(); c_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; c_shp.line.color.rgb = COLORS["PRIMARY"]
-    tf = c_shp.text_frame; tf.clear(); tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-    p = tf.paragraphs[0]; p.text = center.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
-    p.font.size = Pt(16); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
-
-    if not branches: return
-    # 와이드스크린 대응: 타원형 반경
-    radius_x = int(bw * 0.42); radius_y = int(bh * 0.38)
-    branch_w = Inches(1.6); branch_h = Inches(0.9)
+    if not n: return
     default_colors = ['blue', 'green', 'orange', 'red', 'primary', 'gray']
+
+    # ── 좌측 55% = 방사형 마인드맵 ──
+    left_w = int(int(bw) * 0.52)
+    map_cx = int(bx) + left_w // 2
+    map_cy = int(by) + int(bh) // 2
+
+    # 중앙 원 (OVAL)
+    center_r = int(min(int(bh), left_w) * 0.16)
+    center_d = center_r * 2
+    c_shp = slide.shapes.add_shape(MSO_SHAPE.OVAL, map_cx - center_r, map_cy - center_r, center_d, center_d)
+    c_shp.fill.solid(); c_shp.fill.fore_color.rgb = COLORS["PRIMARY"]; c_shp.line.color.rgb = COLORS["PRIMARY"]
+    tf = c_shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.margin_left = Inches(0.03); tf.margin_right = Inches(0.03)
+    p = tf.paragraphs[0]; p.text = center.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+    p.font.size = Pt(11); p.font.color.rgb = COLORS["BG_WHITE"]; p.alignment = PP_ALIGN.CENTER
+
+    # 브랜치 노드 (라운드 사각형 — 라벨 + sub_branches 표시)
+    node_w = Inches(1.4); node_h = Inches(0.7)
+    nhw = int(node_w) // 2; nhh = int(node_h) // 2
+    half_lw = left_w // 2; half_bh = int(bh) // 2
+
+    # 균일 선 길이 계산 — 좌측 영역 경계 제약
+    max_ll = int(Inches(20))
+    for i in range(n):
+        angle = -math.pi / 2 + (2 * math.pi * i / n)
+        ca = abs(math.cos(angle)); sa = abs(math.sin(angle))
+        if ca < 0.01: dr = nhh
+        elif sa < 0.01: dr = nhw
+        else: dr = min(int(nhw / ca), int(nhh / sa))
+        if ca > 0.01:
+            max_ll = min(max_ll, int((half_lw - nhw - Inches(0.08)) / ca) - dr - center_r)
+        if sa > 0.01:
+            max_ll = min(max_ll, int((half_bh - nhh - Inches(0.08)) / sa) - dr - center_r)
+    line_len = max(Inches(0.2), max_ll)
 
     for i, br in enumerate(branches):
         angle = -math.pi / 2 + (2 * math.pi * i / n)
-        bx_pos = cx + int(radius_x * math.cos(angle)) - int(branch_w) // 2
-        by_pos = cy + int(radius_y * math.sin(angle)) - int(branch_h) // 2
+        cos_a = math.cos(angle); sin_a = math.sin(angle)
+        aca = abs(cos_a); asa = abs(sin_a)
+        if aca < 0.01: dr = nhh
+        elif asa < 0.01: dr = nhw
+        else: dr = min(int(nhw / aca), int(nhh / asa))
+
         color_key = br.get('color', default_colors[i % len(default_colors)])
         fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
 
-        # 연결선
-        edge_x = cx + int(Inches(1.1) * math.cos(angle))
-        edge_y = cy + int(Inches(0.5) * math.sin(angle))
-        conn = slide.shapes.add_connector(1, edge_x, edge_y, bx_pos + int(branch_w) // 2, by_pos + int(branch_h) // 2)
-        conn.line.color.rgb = line_c; conn.line.width = Pt(2.5)
+        # 커넥터: 원 가장자리 → 노드 면
+        ex = map_cx + int(center_r * cos_a); ey = map_cy + int(center_r * sin_a)
+        face_x = map_cx + int((center_r + line_len) * cos_a)
+        face_y = map_cy + int((center_r + line_len) * sin_a)
+        conn = slide.shapes.add_connector(1, ex, ey, face_x, face_y)
+        conn.line.color.rgb = line_c; conn.line.width = Pt(2.0)
 
-        shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, bx_pos, by_pos, int(branch_w), int(branch_h))
-        shp.fill.solid(); shp.fill.fore_color.rgb = fill_c; shp.line.color.rgb = line_c; shp.line.width = Pt(2.0)
-        tf = shp.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-        tf.margin_left = Inches(0.08); tf.margin_right = Inches(0.08)
-        p = tf.paragraphs[0]; p.text = br.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
-        p.font.size = Pt(12); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(2)
+        # 노드 박스 중심
+        ncx = map_cx + int((center_r + line_len + dr) * cos_a)
+        ncy = map_cy + int((center_r + line_len + dr) * sin_a)
+        ns = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, ncx - nhw, ncy - nhh, int(node_w), int(node_h))
+        ns.fill.solid(); ns.fill.fore_color.rgb = fill_c; ns.line.color.rgb = line_c; ns.line.width = Pt(1.5)
+        ntf = ns.text_frame; ntf.clear(); ntf.word_wrap = True; ntf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        ntf.margin_left = Inches(0.05); ntf.margin_right = Inches(0.05); ntf.margin_top = Inches(0.03)
+        p = ntf.paragraphs[0]; p.text = br.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(9); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.CENTER; p.space_after = Pt(1)
         for sub in br.get('sub_branches', [])[:2]:
-            p2 = tf.add_paragraph(); p2.text = f"· {sub}"; p2.font.name = FONTS["BODY_TEXT"]
-            p2.font.size = Pt(9); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.CENTER; p2.space_after = Pt(1)
+            p2 = ntf.add_paragraph(); p2.text = f"· {sub}"; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(7); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.CENTER; p2.space_after = Pt(0)
+
+    # ── 우측 48% = 설명 카드 ──
+    right_x = int(bx) + left_w + Inches(0.2)
+    right_w = int(bw) - left_w - Inches(0.2)
+    card_gap = Inches(0.1)
+    card_h = (int(bh) - int(card_gap) * max(n - 1, 1)) // max(n, 1)
+    bar_w = Inches(0.06)
+
+    for i, br in enumerate(branches):
+        color_key = br.get('color', default_colors[i % len(default_colors)])
+        fill_c, line_c, text_c = _SEM_BOX_STYLES.get(color_key, _SEM_BOX_STYLES['primary'])
+        cy = int(by) + int((card_h + int(card_gap)) * i)
+
+        # 색상 악센트 바
+        bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, right_x, cy, int(bar_w), card_h)
+        bar.fill.solid(); bar.fill.fore_color.rgb = line_c; bar.line.fill.background()
+
+        # 카드
+        card_x = right_x + int(bar_w); cw = right_w - int(bar_w)
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, card_x, cy, cw, card_h)
+        card.fill.solid(); card.fill.fore_color.rgb = fill_c; card.line.color.rgb = COLORS["BORDER"]; card.line.width = Pt(0.75)
+        tf = card.text_frame; tf.clear(); tf.word_wrap = True; tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+        tf.margin_left = Inches(0.12); tf.margin_right = Inches(0.08); tf.margin_top = Inches(0.05)
+        p = tf.paragraphs[0]; p.text = br.get('label', ''); p.font.name = FONTS["BODY_TITLE"]; p.font.bold = True
+        p.font.size = Pt(10); p.font.color.rgb = line_c; p.alignment = PP_ALIGN.LEFT; p.space_after = Pt(2)
+        desc = br.get('desc', '')
+        if desc:
+            p2 = tf.add_paragraph(); p2.text = desc; p2.font.name = FONTS["BODY_TEXT"]
+            p2.font.size = Pt(8); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.LEFT; p2.space_after = Pt(1)
+        else:
+            for sub in br.get('sub_branches', [])[:3]:
+                p2 = tf.add_paragraph(); p2.text = f"• {sub}"; p2.font.name = FONTS["BODY_TEXT"]
+                p2.font.size = Pt(8); p2.font.color.rgb = text_c; p2.alignment = PP_ALIGN.LEFT; p2.space_after = Pt(1)
 
 
 # ==========================================

@@ -177,7 +177,7 @@ def update_cover_slide(slide, title_text, subtitle_text):
             try: trash._element.getparent().remove(trash._element)
             except: pass
         apply_text_with_style(target_title, title_text, saved_style, force_center=True)
-        center_shape_horizontally(target_title, fixed_width_inch=8.0)
+        center_shape_horizontally(target_title, fixed_width_inch=10.5)
 
     target_subtitle = None
     if subtitle_candidates:

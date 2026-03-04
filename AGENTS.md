@@ -110,17 +110,17 @@ pip install python-pptx lxml pillow
 | `split_text_code` | 설명+코드 | description, bullets[], code |
 | `pyramid_hierarchy` | 피라미드 계층 | levels[]{label,desc,color} |
 | `cycle_loop` | 순환 프로세스 | steps[]{label,desc}, center_label |
-| `venn_diagram` | 3원 벤 다이어그램 | circles[]{label,desc,color}, center_label |
+| `venn_diagram` | 좌측 3원 벤 + 우측 설명 카드 | circles[]{label,desc,color}, center_label |
 | `swot_matrix` | SWOT 분석 매트릭스 | quadrants[]{label,title,items[],color} |
-| `center_radial` | 중심 방사형 관계도 | center{label,desc}, directions[]{label,desc,color} |
+| `center_radial` | 중심 ROUNDED_RECT + 4방향 카드 | center{label,desc}, directions[]{label,desc,color} |
 | `funnel` | 퍼널 다이어그램 | stages[]{label,value,desc,color} |
 | `zigzag_timeline` | 지그재그 타임라인 | steps[]{date,title,desc,color} |
 | `fishbone_cause_effect` | 피쉬본 원인-결과 | effect, categories[]{label,causes[],color} |
 | `org_chart` | 조직도/트리 | root{label,desc}, children[]{label,desc,items[],color} |
 | `temple_pillars` | 기둥형 구조도 | roof{label}, pillars[]{label,desc,color}, foundation{label} |
-| `infinity_loop` | 무한 순환 루프 | left_loop[],right_loop[],center_label |
+| `infinity_loop` | 무한 순환 루프 (상단 라벨+흐름 화살표) | left_loop[],right_loop[],center_label,left_label,right_label |
 | `speedometer_gauge` | 스피도미터 게이지 | value, segments[]{label,color}, title |
-| `mind_map` | 마인드맵 | center{label}, branches[]{label,sub_branches[],color} |
+| `mind_map` | 좌측 방사형 맵 + 우측 설명 카드 | center{label}, branches[]{label,sub_branches[],desc,color} |
 
 ## 의존성
 

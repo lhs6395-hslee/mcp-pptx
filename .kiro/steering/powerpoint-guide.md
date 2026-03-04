@@ -205,9 +205,9 @@ presentation_data = {
 | 25 | Split Text+Code | `split_text_code` | description, bullets[], code_title, code | 설명+코드 병렬 |
 | 26 | Pyramid Hierarchy | `pyramid_hierarchy` | levels[]{label,desc,color} | 피라미드 계층 |
 | 27 | Cycle Loop | `cycle_loop` | steps[]{label,desc}, center_label | 순환 프로세스 |
-| 28 | Venn Diagram | `venn_diagram` | circles[]{label,desc,color}, center_label | 3원 벤 다이어그램 |
+| 28 | Venn Diagram | `venn_diagram` | circles[]{label,desc,color}, center_label | 좌측 3원 벤 + 우측 설명 카드 |
 | 29 | SWOT Matrix | `swot_matrix` | quadrants[]{label,title,items[],color} | 2×2 SWOT 분석 |
-| 30 | Center Radial | `center_radial` | center{label,desc}, directions[]{label,desc,color} | 중심 방사형 관계도 |
+| 30 | Center Radial | `center_radial` | center{label,desc}, directions[]{label,desc,color} | 중심 ROUNDED_RECT + 4방향 카드 |
 | 31 | Funnel | `funnel` | stages[]{label,value,desc,color} | 퍼널 다이어그램 |
 | 32 | Zigzag Timeline | `zigzag_timeline` | steps[]{date,title,desc,color} | 지그재그 타임라인 |
 | 33 | Fishbone Cause-Effect | `fishbone_cause_effect` | effect, categories[]{label,causes[],color} | 피쉬본 원인-결과 |
@@ -215,7 +215,7 @@ presentation_data = {
 | 35 | Temple Pillars | `temple_pillars` | roof{label}, pillars[]{label,desc,color}, foundation{label} | 기둥형 구조도 |
 | 36 | Infinity Loop | `infinity_loop` | left_loop[],right_loop[],left_label,right_label,center_label | 무한 순환 루프 |
 | 37 | Speedometer Gauge | `speedometer_gauge` | value,segments[]{label,color},title | 스피도미터 게이지 |
-| 38 | Mind Map | `mind_map` | center{label}, branches[]{label,sub_branches[],color} | 마인드맵 |
+| 38 | Mind Map | `mind_map` | center{label}, branches[]{label,sub_branches[],desc,color} | 좌측 방사형 맵 + 우측 설명 카드 |
 
 ### Detail Sections Diagram Types
 
