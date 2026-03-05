@@ -266,6 +266,42 @@ N개 컬럼에 대해 균등 샘플링하여 색상 배정.
 7. Ending slide를 마지막으로 이동
 8. 저장 → `results/{steering_basename}.pptx`
 
+### Post-Generation: 슬라이드 타이틀 단어 잘림 검증 (필수)
+
+PPT 생성 후 **반드시** 모든 슬라이드 타이틀의 폭을 검증해야 합니다.
+
+**배경**: `set_slide_title_area()`는 타이틀을 4.5인치(324pt) 영역에 28pt로 렌더링합니다.
+한글이 포함된 긴 타이틀은 PowerPoint가 자동 줄바꿈 시 단어 중간에서 잘릴 수 있습니다.
+
+**검증 방법**:
+```python
+# PPT 생성 후 실행
+from pptx import Presentation
+prs = Presentation('results/output.pptx')
+for i, slide in enumerate(prs.slides):
+    for shape in slide.shapes:
+        if shape.has_text_frame:
+            text = shape.text_frame.text.strip()
+            # 번호가 붙은 타이틀만 검사 (예: "1-1.", "2-3.")
+            if any(text.startswith(f'{s}-') for s in ['1','2','3','4','5']):
+                width_pt = 0
+                for ch in text:
+                    if ord(ch) > 0x2E80: width_pt += 28    # 한글/CJK
+                    elif ch == ' ':      width_pt += 7      # 공백
+                    elif ch in '.:/-':   width_pt += 10     # 구두점
+                    else:                width_pt += 14     # 영문/숫자
+                overflow = 'OVERFLOW' if width_pt > 340 else 'OK'
+                print(f'Slide {i+1}: [{width_pt}pt/340pt] {overflow} | {text}')
+```
+
+**처리 규칙**:
+- 실질 임계값: **~340pt** (4.5인치 영역, 실제 렌더링 기준)
+- 340pt 초과 시 steering 파일의 `"t"` 값에 `\n` 삽입
+- 자연스러운 단어 경계에서만 개행 (단어 중간 금지)
+- **최소한만 내릴 것**: 초과분에 해당하는 마지막 단어만 2줄로 이동. 예: 16pt 초과면 마지막 1단어만 내림
+- `set_slide_title_area()`는 `\n`을 인식하여 다중 문단으로 렌더링
+- **사전에 미리 자르지 말 것** — 생성 후 검증하여 초과분만 개행
+
 ## Layout Diversity Rule
 
 - 최대 3장까지 같은 레이아웃 허용
