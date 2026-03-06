@@ -90,26 +90,41 @@
 - [x] `render_pyramid_hierarchy()` — 피라미드 계층 (levels[])
 - [x] `render_cycle_loop()` — 순환 프로세스 (steps[], center_label)
 
-## Task 12: 라우터 및 통합
+## Task 12: 고급 다이어그램 레이아웃 구현 (레이아웃 28~38)
 
-- [x] `render_slide_content()` 라우터 딕셔너리 구현 (27종 매핑)
+- [x] `render_venn_diagram()` — 좌측 3원 벤 + 우측 설명 카드 (circles[], center_label)
+- [x] `render_swot_matrix()` — 2×2 SWOT 분석 매트릭스 (quadrants[])
+- [x] `render_center_radial()` — 중심 ROUNDED_RECT + 4방향 카드 (center, directions[])
+- [x] `render_funnel()` — 퍼널 다이어그램 (stages[])
+- [x] `render_zigzag_timeline()` — 지그재그 타임라인 (steps[])
+- [x] `render_fishbone_cause_effect()` — 피쉬본 원인-결과 (effect, categories[])
+- [x] `render_org_chart()` — 조직도/트리 계층 (root, children[])
+- [x] `render_temple_pillars()` — 기둥형 구조도 (roof, pillars[], foundation)
+- [x] `render_infinity_loop()` — 무한 순환 루프 (left_loop[], right_loop[], labels)
+- [x] `render_speedometer_gauge()` — 스피도미터 게이지 (value, segments[], title)
+- [x] `render_mind_map()` — 좌측 방사형 맵 + 우측 설명 카드 (center, branches[])
+
+## Task 13: 라우터 및 통합
+
+- [x] `render_slide_content()` 라우터 딕셔너리 구현 (38종 매핑)
 - [x] 존재하지 않는 레이아웃 요청 시 경고 메시지 처리
 - [x] 전체 스티어링 파일(rayhli-eks_guide_2026.py)로 통합 테스트
 - [x] 전체 스티어링 파일(rayhli-ss_db_migration_resume.py)로 통합 테스트
 
-## Task 13: 스티어링 MD 문서화
+## Task 14: 스티어링 MD 문서화
 
-- [x] `powerpoint-guide.md` 작성 (아키텍처, 상수, 레이아웃 참조)
+- [x] `powerpoint-guide.md` 작성 (아키텍처, 상수, 38종 레이아웃 참조)
 - [x] `powerpoint-code-generate.md` 작성 (generate.py + generate_ppt.sh 전문)
 - [x] `powerpoint-code-cover-toc.md` 작성 (표지/목차 코드 전문)
 - [x] `powerpoint-code-content.md` 작성 (본문 Part 1: 유틸리티+레이아웃 1~13)
-- [x] `powerpoint-code-content-2.md` 작성 (본문 Part 2: 레이아웃 14~27+라우터)
+- [x] `powerpoint-code-content-2.md` 작성 (본문 Part 2: 레이아웃 14~38+라우터)
 
-## Task 14: 멀티 IDE 지원
+## Task 15: 멀티 IDE 지원
 
+- [x] `AGENTS.md` 작성 (공통 프로젝트 가이드, 38종 레이아웃 테이블)
 - [x] `CLAUDE.md` 작성 (Claude Code 프로젝트 가이드)
 - [x] `GEMINI.md` 작성 (Antigravity 프로젝트 가이드)
-- [x] `.gemini/settings.json` 작성 (CLAUDE.md 병행 읽기 설정)
+- [x] `.gemini/settings.json` 작성 (AGENTS.md 병행 읽기 설정)
 - [x] `.github/copilot-instructions.md` 작성 (VS Code Copilot 가이드)
 - [x] `.kiro/specs/powerpoint-system/` Kiro spec 작성 (requirements/design/tasks)
 

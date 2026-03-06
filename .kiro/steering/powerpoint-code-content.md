@@ -15,7 +15,7 @@ import os
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
 
 # [A] 폰트 & 색상 (가시성 최우선)
 FONTS = {
@@ -174,6 +174,7 @@ def create_content_box(slide, x, y, w, h, title, body, style="gray", search_q=No
         tf.margin_left = Inches(0.25); tf.margin_right = Inches(0.25)
         tf.margin_top = Inches(0.3); tf.margin_bottom = Inches(0.3)
     tf.word_wrap = True
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE  # 텍스트 오버플로우 방지 (Shrink text on overflow)
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE  # 수직 중앙 정렬
 
     # 색상 및 폰트
@@ -196,21 +197,27 @@ def create_content_box(slide, x, y, w, h, title, body, style="gray", search_q=No
     if body:
         # 줄바꿈(\n) 처리를 위해 각 줄을 별도 paragraph로 추가
         lines = str(body).split('\n')
+        # 여러 줄이면 개조식(bullet list)으로 간주 → • 자동 추가
+        is_list = len(lines) > 1
         for i, line in enumerate(lines):
             if i == 0 and not title:
                 p = tf.paragraphs[0]
             else:
                 p = tf.add_paragraph()
 
-            p.text = line
+            stripped = line.strip()
+            # 개조식 자동 • 추가: 다중 줄이고, 이미 기호/번호로 시작하지 않는 경우
+            # 번호 목록 패턴: "1. ", "2) ", "3: " — 실제 번호 목록만 제외
+            import re as _re
+            is_numbered = bool(_re.match(r'^\d+[.):\s]\s', stripped))
+            if is_list and stripped and not stripped.startswith('•') and not is_numbered:
+                p.text = "• " + line
+            else:
+                p.text = line
             p.font.name = body_font; p.font.size = body_size
             p.font.color.rgb = body_color
             p.alignment = PP_ALIGN.LEFT
             p.space_after = line_spacing
-
-            # 개조식 구분: "•"로 시작하는 경우 들여쓰기 적용
-            if line.strip().startswith('•'):
-                p.level = 0  # bullet point 레벨
 
     # 아이콘 추가 (오른쪽 상단, 박스 크기 충분할 때만)
     if search_q:
@@ -270,6 +277,7 @@ def create_terminal_box(slide, x, y, w, h, title, body, compact=False):
     text_tb = slide.shapes.add_textbox(x + Inches(0.25), text_y, w - Inches(0.5), text_h)
     tf = text_tb.text_frame
     tf.word_wrap = True
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE  # 텍스트 오버플로우 방지
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE  # 수직 중앙 정렬
     tf.margin_left = Inches(0.15)
     tf.margin_right = Inches(0.15)
@@ -280,6 +288,7 @@ def create_terminal_box(slide, x, y, w, h, title, body, compact=False):
     n_lines = len(lines)
 
     # 라인 수에 따라 동적 폰트 크기 조절
+    # generate.py에서 split_text_code는 MAX_LINES_PER_SLIDE=14 이하로 분할 전달됨
     if compact or n_lines > 20:
         font_size = Pt(9); line_spacing = Pt(2)
     elif n_lines > 15:
@@ -315,7 +324,16 @@ def set_slide_title_area(slide, title_text, desc_text=""):
 
     tf = title_shape.text_frame; tf.clear(); tf.word_wrap = True
     p = tf.paragraphs[0]; p.text = str(title_text)
-    p.font.name = FONTS["HEAD_TITLE"]; p.font.size = Pt(28); p.font.bold = True
+    # 제목 길이에 따라 폰트 자동 축소 (단어 잘림 방지)
+    # "프리젠테이션 7 Bold" 28pt: Latin 글자 ~17pt 너비 → 4.5" = 324pt → 최대 ~19자
+    _char_count = len(str(title_text))
+    if _char_count > 23:
+        _title_pt = Pt(22)
+    elif _char_count > 18:
+        _title_pt = Pt(25)
+    else:
+        _title_pt = Pt(28)
+    p.font.name = FONTS["HEAD_TITLE"]; p.font.size = _title_pt; p.font.bold = True
     p.font.color.rgb = COLORS["PRIMARY"]; p.alignment = PP_ALIGN.LEFT
 
     # 2. 설명 (Right)
@@ -371,56 +389,50 @@ def render_3_cards(slide, data):
     bx, by, bw, bh = calculate_dynamic_rect(y_start)
     content = wrapper.get('data', {})
 
-    # 1. 모든 카드의 최대 본문 줄 수 계산
-    max_body_lines = 0
-    for key in ['card_1', 'card_2', 'card_3']:
-        item = content.get(key, {})
-        body_text = item.get('body', '')
-        body_lines = len([l for l in str(body_text).split('\n') if l.strip()])
-        max_body_lines = max(max_body_lines, body_lines)
-
-    # 2. 카드 높이 동적 계산
-    # 아이콘: 0.8인치 + 여백: 0.5인치 + 제목: 0.35인치 + 본문: (줄 수 * 0.28인치) + 안전여백: 0.2인치
-    icon_h = Inches(0.8)
-    padding_h = Inches(0.5)
-    title_h = Inches(0.35)
-    body_h = Inches(0.28 * max(max_body_lines, 2))
-    dynamic_card_h = icon_h + padding_h + title_h + body_h + Inches(0.2)
-
-    # 3. 계산된 높이가 available height를 초과하면 조정
-    if dynamic_card_h > bh:
-        dynamic_card_h = bh
-
-    # 4. 모든 카드에 동일한 높이 적용 (아이콘+텍스트 그룹 수직 중앙 정렬)
+    # 카드는 항상 가용 높이 전체를 채움 (auto_size로 오버플로우 방지)
+    card_h = bh
     gap = Inches(0.3); w_card = (bw - (gap * 2)) / 3
     for i, key in enumerate(['card_1', 'card_2', 'card_3']):
         item = content.get(key, {})
         x = bx + i * (w_card + gap)
-        create_content_box(slide, x, by, w_card, dynamic_card_h, "", "", "white")
+        create_content_box(slide, x, by, w_card, card_h, "", "", "white")
 
         # 아이콘+텍스트 그룹을 카드 내에서 수직 중앙 정렬
         icon_size = Inches(0.8)
-        icon_text_gap = Inches(0.15)  # 아이콘과 텍스트 간격 축소
-        text_area_height = dynamic_card_h * 0.65  # 텍스트 영역 증가 (55% → 65%)
+        icon_text_gap = Inches(0.15)
+        text_area_height = card_h * 0.65
 
         total_content_height = icon_size + icon_text_gap + text_area_height
-        top_margin = (dynamic_card_h - total_content_height) / 2
+        top_margin = (card_h - total_content_height) / 2
 
         # 아이콘 배치
         icon_y = by + top_margin
         draw_icon_search(slide, x + w_card/2 - icon_size/2, icon_y, icon_size, item.get('search_q'))
 
-        # 텍스트박스 배치
+        # 텍스트박스 배치 (auto_size로 오버플로우 방지)
         text_y = icon_y + icon_size + icon_text_gap
         text_height = text_area_height
         tb = slide.shapes.add_textbox(x, text_y, w_card, text_height)
         tb.text_frame.word_wrap = True
+        tb.text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
         tb.text_frame.margin_left = Inches(0.2)
         tb.text_frame.margin_right = Inches(0.2)
         tb.text_frame.margin_top = Inches(0.1)
         tb.text_frame.margin_bottom = Inches(0.1)
         p = tb.text_frame.paragraphs[0]; p.text = item.get('title',''); p.font.bold=True; p.font.size=Pt(17); p.alignment=PP_ALIGN.CENTER; p.font.color.rgb=COLORS["PRIMARY"]; p.font.name=FONTS["BODY_TITLE"]
-        p2 = tb.text_frame.add_paragraph(); p2.text = item.get('body',''); p2.font.size=Pt(13); p2.alignment=PP_ALIGN.CENTER; p2.font.color.rgb=COLORS["BLACK"]; p2.font.name=FONTS["BODY_TEXT"]; p2.space_before = Pt(8)
+        body_lines = [l for l in item.get('body', '').split('\n') if l.strip()] or ['']
+        is_list = len(body_lines) > 1
+        import re as _re
+        for li, body_line in enumerate(body_lines):
+            p2 = tb.text_frame.add_paragraph()
+            stripped = body_line.strip()
+            is_numbered = bool(_re.match(r'^\d+[.):\s]\s', stripped))
+            if is_list and stripped and not stripped.startswith('•') and not is_numbered:
+                p2.text = "• " + body_line
+            else:
+                p2.text = body_line
+            p2.font.size=Pt(13); p2.alignment=PP_ALIGN.CENTER; p2.font.color.rgb=COLORS["BLACK"]; p2.font.name=FONTS["BODY_TEXT"]
+            if li == 0: p2.space_before = Pt(8)
 
 # 1. Bento Grid
 def render_bento_grid(slide, data):
@@ -436,43 +448,6 @@ def render_bento_grid(slide, data):
     h_sub = (bh - gap) / 2
     create_content_box(slide, bx+w_main+gap, by, w_main, h_sub, content.get('sub1',{}).get('title'), content.get('sub1',{}).get('body'), "white", content.get('sub1',{}).get('search_q'), compact=True, terminal=content.get('sub1',{}).get('terminal', False))
     create_content_box(slide, bx+w_main+gap, by+h_sub+gap, w_main, h_sub, content.get('sub2',{}).get('title'), content.get('sub2',{}).get('body'), "white", content.get('sub2',{}).get('search_q'), compact=True, terminal=content.get('sub2',{}).get('terminal', False))
-
-# 2. 3 Cards
-def render_3_cards(slide, data):
-    wrapper = data.get('data', {})
-    y_start = draw_body_header_and_get_y(slide, wrapper.get('body_title'), wrapper.get('body_desc'))
-    bx, by, bw, bh = calculate_dynamic_rect(y_start)
-    content = wrapper.get('data', {})
-
-    gap = Inches(0.3); w_card = (bw - (gap * 2)) / 3
-    for i, key in enumerate(['card_1', 'card_2', 'card_3']):
-        item = content.get(key, {})
-        x = bx + i * (w_card + gap)
-        create_content_box(slide, x, by, w_card, bh, "", "", "white")
-
-        # 아이콘+텍스트 그룹을 카드 내에서 수직 중앙 정렬
-        icon_size = Inches(0.8)
-        icon_text_gap = Inches(0.15)  # 아이콘과 텍스트 간격 축소
-        text_area_height = bh * 0.65  # 텍스트 영역 증가 (55% → 65%)
-
-        total_content_height = icon_size + icon_text_gap + text_area_height
-        top_margin = (bh - total_content_height) / 2
-
-        # 아이콘 배치
-        icon_y = by + top_margin
-        draw_icon_search(slide, x + w_card/2 - icon_size/2, icon_y, icon_size, item.get('search_q'))
-
-        # 텍스트박스 배치
-        text_y = icon_y + icon_size + icon_text_gap
-        text_height = text_area_height
-        tb = slide.shapes.add_textbox(x, text_y, w_card, text_height)
-        tb.text_frame.word_wrap = True
-        tb.text_frame.margin_left = Inches(0.2)
-        tb.text_frame.margin_right = Inches(0.2)
-        tb.text_frame.margin_top = Inches(0.1)
-        tb.text_frame.margin_bottom = Inches(0.1)
-        p = tb.text_frame.paragraphs[0]; p.text = item.get('title',''); p.font.bold=True; p.font.size=Pt(17); p.alignment=PP_ALIGN.CENTER; p.font.color.rgb=COLORS["PRIMARY"]; p.font.name=FONTS["BODY_TITLE"]
-        p2 = tb.text_frame.add_paragraph(); p2.text = item.get('body',''); p2.font.size=Pt(13); p2.alignment=PP_ALIGN.CENTER; p2.font.color.rgb=COLORS["BLACK"]; p2.font.name=FONTS["BODY_TEXT"]; p2.space_before = Pt(8)
 
 # 3. Grid 2x2
 def render_grid_2x2(slide, data):
@@ -1020,10 +995,11 @@ def render_comparison_table(slide, data):
             p.font.size = Pt(14)
             p.font.color.rgb = COLORS["BLACK"]
             p.alignment = PP_ALIGN.CENTER
+
 ```
 
 ---
 
-**(계속: 14~27번 레이아웃 + 다이어그램 헬퍼 + 라우터)**
+**(계속: 14~41번 레이아웃 + 다이어그램 헬퍼 + 라우터)**
 
 → [powerpoint-code-content-2.md](./powerpoint-code-content-2.md)
