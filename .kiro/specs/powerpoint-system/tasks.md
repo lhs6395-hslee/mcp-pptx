@@ -161,5 +161,5 @@
   - [x] powerpoint-code-content.md
   - [x] powerpoint-code-content-2.md
   - [x] powerpoint-code-content-3.md
-- [ ] Kiro 컨텍스트 사용량 검증 (29% → 0% 확인)
+- [x] Kiro 컨텍스트 사용량 검증 (29% → 0% 확인)
 - [x] Git commit & push
