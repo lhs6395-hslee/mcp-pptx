@@ -135,3 +135,10 @@
 - [x] 기존 Claude Code hook 메시지에 `[Hook:Hx]` 라벨 추가
 - [x] `.kiro/hooks/cross-ide-sync.kiro.hook` 생성 (양방향 감지)
 - [x] `.kiro/hooks/git-push-on-complete.kiro.hook` agentStop→userTriggered 확정
+
+## Task 16: Git 추적 규칙 정리 및 IDE 설정 추가
+
+- [x] `.gitignore`에 `code/` 폴더 추가 (Python 코드 제외 규칙 강화)
+- [x] `.vscode/settings.json` 추가 (VS Code IDE 설정 추적)
+- [x] Git commit & push 완료 (한국어 커밋 메시지)
+- [x] AGENTS.md 규칙 준수 확인 (Python 코드 제외, IDE 설정 추적)
