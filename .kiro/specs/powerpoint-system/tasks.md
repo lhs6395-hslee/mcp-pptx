@@ -142,3 +142,12 @@
 - [x] `.vscode/settings.json` 추가 (VS Code IDE 설정 추적)
 - [x] Git commit & push 완료 (한국어 커밋 메시지)
 - [x] AGENTS.md 규칙 준수 확인 (Python 코드 제외, IDE 설정 추적)
+
+## Task 17: 스티어링 파일 최적화 (크기 관리)
+
+- [x] 스티어링 파일 크기 분석 (powerpoint-code-content-2.md 133KB 확인)
+- [x] `powerpoint-code-content-2.md` 3분할 구조로 재구성
+  - [x] Part 2: 레이아웃 14~27 (약 60KB)
+  - [x] Part 3: 레이아웃 28~41 + 라우터 (약 70KB)
+- [x] AGENTS.md 파일 참조 테이블 업데이트 (5개 → 6개 파일)
+- [x] H2 Hook 매핑 규칙 업데이트 (Part 2/3 구분)

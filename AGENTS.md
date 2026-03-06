@@ -15,7 +15,7 @@
 ### 코드 생성/수정 시
 - `.kiro/steering/` md 파일이 **Single Source of Truth**
 - Python 코드 수정 후 반드시 해당 steering md도 동기화
-- 코드 재생성 시 아래 5개 파일을 순서대로 참조:
+- 코드 재생성 시 아래 6개 파일을 순서대로 참조:
 
 | File | 내용 | 생성 대상 |
 |------|------|----------|
@@ -23,7 +23,8 @@
 | `powerpoint-code-generate.md` | 오케스트레이션 코드 | generate.py, generate_ppt.sh |
 | `powerpoint-code-cover-toc.md` | 표지/목차 코드 | powerpoint_cover.py, powerpoint_toc.py |
 | `powerpoint-code-content.md` | 본문 Part 1 (유틸리티 + 레이아웃 1~13) | powerpoint_content.py |
-| `powerpoint-code-content-2.md` | 본문 Part 2 (레이아웃 14~38 + 라우터) | powerpoint_content.py |
+| `powerpoint-code-content-2.md` | 본문 Part 2 (다이어그램 헬퍼 + 레이아웃 14~27) | powerpoint_content.py |
+| `powerpoint-code-content-3.md` | 본문 Part 3 (레이아웃 28~41 + 라우터) | powerpoint_content.py |
 
 ### 스티어링 데이터 파일 작성 시
 - 파일명 규칙: `rayhli-{주제}.py`
@@ -197,7 +198,8 @@ claude mcp add fetch -- uvx mcp-server-fetch
 | `generate.py` / `generate_ppt.sh` | `powerpoint-code-generate.md` |
 | `powerpoint_cover.py` / `powerpoint_toc.py` | `powerpoint-code-cover-toc.md` |
 | `powerpoint_content.py` (유틸리티+레이아웃 1~13) | `powerpoint-code-content.md` |
-| `powerpoint_content.py` (레이아웃 14~27+라우터) | `powerpoint-code-content-2.md` |
+| `powerpoint_content.py` (레이아웃 14~27) | `powerpoint-code-content-2.md` |
+| `powerpoint_content.py` (레이아웃 28~41+라우터) | `powerpoint-code-content-3.md` |
 | 상수/아키텍처 변경 | `powerpoint-guide.md` |
 
 ### IDE별 Hook 매핑
