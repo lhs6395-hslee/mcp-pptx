@@ -5,6 +5,7 @@ __pycache__/
 *.pyo
 
 # Generated from steering md (재생성 가능)
+code/
 generate.py
 generate_ppt.sh
 powerpoint_content.py
