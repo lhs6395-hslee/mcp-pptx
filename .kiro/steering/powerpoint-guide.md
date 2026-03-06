@@ -1,3 +1,7 @@
+---
+inclusion: manual
+---
+
 # PowerPoint Generation System - Complete Specification
 
 **Version**: v5.3 (2026-03-06)

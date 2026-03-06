@@ -1,3 +1,7 @@
+---
+inclusion: manual
+---
+
 # PowerPoint Generation - Cover & TOC Source Code
 
 **Part of**: [powerpoint-guide.md](./powerpoint-guide.md) 시스템 명세

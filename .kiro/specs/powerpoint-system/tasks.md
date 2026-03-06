@@ -151,3 +151,15 @@
   - [x] Part 3: 레이아웃 28~41 + 라우터 (약 70KB)
 - [x] AGENTS.md 파일 참조 테이블 업데이트 (5개 → 6개 파일)
 - [x] H2 Hook 매핑 규칙 업데이트 (Part 2/3 구분)
+
+## Task 18: 스티어링 파일 컨텍스트 최적화 (inclusion: manual)
+
+- [x] 6개 스티어링 파일에 `inclusion: manual` front-matter 추가
+  - [x] powerpoint-guide.md
+  - [x] powerpoint-code-generate.md
+  - [x] powerpoint-code-cover-toc.md
+  - [x] powerpoint-code-content.md
+  - [x] powerpoint-code-content-2.md
+  - [x] powerpoint-code-content-3.md
+- [ ] Kiro 컨텍스트 사용량 검증 (29% → 0% 확인)
+- [ ] Git commit & push
