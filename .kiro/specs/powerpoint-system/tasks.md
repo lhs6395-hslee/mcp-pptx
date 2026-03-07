@@ -163,3 +163,34 @@
   - [x] powerpoint-code-content-3.md
 - [x] Kiro 컨텍스트 사용량 검증 (29% → 0% 확인)
 - [x] Git commit & push
+
+## Task 19: 프로젝트 상태 재분석 및 검증
+
+- [x] 프로젝트 구조 재분석 (steering 6개, hooks 6개, specs 3개 확인)
+- [x] Python 코드 생성 상태 확인 (code/ 디렉토리 4개 모듈)
+- [x] 스티어링 데이터 파일 확인 (rayhli-*.py 4개)
+- [x] 생성된 PPT 출력물 확인 (results/ 5개)
+- [x] Git 추적 전략 검증 (시스템 추적, 생성물 제외)
+- [x] MCP 서버 설정 파일 생성 (.kiro/settings/mcp.json)
+- [x] 필수 MCP 서버 4종 설정 (context7, infrastructure-diagrams, powerpoint, fetch)
+
+## Task 20: 프로젝트 전체 검증 (18개 항목)
+
+- [x] Steering MD 명세 6개 파일 확인 (inclusion: manual 설정 완료)
+- [x] Python 코드 4개 모듈 생성 확인 (code/ 디렉토리)
+- [x] Hooks 6개 자동화 설정 확인 (.kiro/hooks/ + .claude/settings.json)
+- [x] Specs 정형 명세 확인 (requirements/design/tasks)
+- [x] Python 3.14.2 설치 확인
+- [x] 필수 패키지 설치 확인 (python-pptx 1.0.2, lxml 6.0.2, pillow 12.1.1)
+- [x] generate_ppt.sh 실행 권한 확인
+- [x] 템플릿 파일 존재 확인 (2025_PPT_Template_FINAL.pptx)
+- [x] 아이콘 40개 PNG 파일 확인 (icons/)
+- [x] 다이어그램 2개 PNG 파일 확인 (architecture/)
+- [x] 스티어링 데이터 4개 파일 확인 (rayhli-*.py)
+- [x] 생성된 PPT 5개 출력물 확인 (results/)
+- [x] PPT 생성 기능 테스트 (rayhli-ssts_1juca_plan.py → 10장 생성 성공)
+- [x] Git 저장소 초기화 확인
+- [x] 원격 저장소 연결 확인 (github.com/lhs6395-hslee/mcp-pptx)
+- [x] .gitignore 규칙 검증 (시스템 추적, 생성물 제외)
+- [x] Cross-IDE 지원 확인 (AGENTS.md, Claude Code hooks, Kiro hooks)
+- [x] 문서화 완비 확인 (README.md, AGENTS.md, specs)
