@@ -27,6 +27,13 @@
       "env": {},
       "disabled": false,
       "autoApprove": []
+    },
+    "pptx-generator": {
+      "command": "python3",
+      "args": ["/Users/rayhli/Documents/ide/claude-mcp-pptx/server.py"],
+      "env": {},
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }
